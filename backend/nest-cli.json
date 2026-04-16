@@ -1,0 +1,13 @@
+{
+  "name": "nest",
+  "version": "1.0.0",
+  "description": "Nest CLI configuration file, for projects created via `nest new`.",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "src",
+  "compilerOptions": {
+    "deleteOutDir": true,
+    "webpack": true,
+    "tsConfigPath": "tsconfig.json"
+  }
+}
+
