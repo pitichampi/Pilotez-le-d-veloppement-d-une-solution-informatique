@@ -1,6 +1,6 @@
-# Application Web 3-Couches
+# DataShare
 
-Architecture web classique avec séparation claire des responsabilités : client, frontend React, backend NestJS.
+Une plateforme de transfert de fichiers simple mais robuste, avec authentification sécurisée, téléversement de fichiers, et génération de liens de téléchargement utilisant une architecture web classique avec séparation claire des responsabilités : client, frontend React, backend NestJS.
 
 ## Stack Technique
 
