@@ -1,6 +1,6 @@
 # QUICKSTART.md
 
-## ⚡ Démarrage Rapide
+## Démarrage Rapide
 
 Démarrez l'application entière en une seule commande !
 
@@ -10,7 +10,7 @@ Démarrez l'application entière en une seule commande !
 - **Docker Compose** >= 2.0
 - **Git**
 
-### 🚀 Démarrage en 2 étapes
+### Démarrage en 2 étapes
 
 ```bash
 # 1. Cloner le projet
@@ -21,11 +21,11 @@ cd Travail
 docker-compose up
 ```
 
-C'est tout ! ✨
+C'est tout !
 
 ---
 
-## 📍 Accès aux services
+## Accès aux services
 
 | Service | URL | Identifiants |
 |---------|-----|------------|
@@ -36,7 +36,7 @@ C'est tout ! ✨
 
 ---
 
-## 🧪 Tester rapidement
+## Tester rapidement
 
 ### 1. S'inscrire
 ```bash
@@ -68,7 +68,7 @@ curl -X GET http://localhost:3001/api/files \
 
 ---
 
-## 📋 Commandes courantes
+## Commandes courantes
 
 ```bash
 # Voir les logs
@@ -95,7 +95,7 @@ docker-compose ps
 
 ---
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Les ports sont déjà utilisés
 ```bash
@@ -130,7 +130,7 @@ sudo docker-compose up
 
 ---
 
-## 📝 Structure rapide
+## Structure rapide
 
 ```
 Travail/
@@ -143,7 +143,7 @@ Travail/
 
 ---
 
-## 🔑 Informations utiles
+## Informations utiles
 
 ### Base de données
 - **Type** : PostgreSQL
@@ -164,15 +164,15 @@ Travail/
 
 ---
 
-## 📚 Pour aller plus loin
+## Pour aller plus loin
 
-- 📖 **Architecture complète** : voir `ARCHITECTURE.md`
-- 🔌 **Documentation API** : voir `API.md`
-- 📝 **Contribuer** : voir `CONTRIBUTING.md`
+- **Architecture complète** : voir `ARCHITECTURE.md`
+- **Documentation API** : voir `API.md`
+- **Contribuer** : voir `CONTRIBUTING.md`
 
 ---
 
-## 💡 Conseils
+## Conseils
 
 1. **Développement** : Les hot reloads sont activés, vos changements prennent effet instantanément
 2. **Debug** : Consultez les logs avec `docker-compose logs -f`
@@ -181,7 +181,7 @@ Travail/
 
 ---
 
-## ✅ Checklist de démarrage
+## Checklist de démarrage
 
 - [ ] Docker installé et en fonctionnement
 - [ ] `docker-compose up` exécuté
@@ -190,5 +190,5 @@ Travail/
 - [ ] Compte créé via l'interface
 - [ ] Fichier uploadé avec succès
 
-Bon développement ! 🎉
+Bon développement !
 

@@ -238,7 +238,7 @@ npm run lighthouse
 
 #### React + Vite
 
-✅ **Code Splitting**
+**Code Splitting**
 ```javascript
 // Routes lazy-loaded
 const HomePage = lazy(() => import('./pages/HomePage'));

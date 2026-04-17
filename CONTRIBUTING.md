@@ -139,5 +139,5 @@ Créer une issue avec le tag `question` pour discuter.
 
 ---
 
-Merci de contribuer! 🎉
+Merci de contribuer!
 

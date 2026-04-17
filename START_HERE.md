@@ -1,6 +1,6 @@
-# 🎬 COMMENCER ICI
+# COMMENCER ICI
 
-## Pour les Impatients ⚡
+## Pour les Impatients
 
 Si vous ne lisez qu'une chose, c'est celle-ci !
 
@@ -22,7 +22,7 @@ Attendez que Docker affiche "✅ Services démarrés"
 3. Uploadez un fichier
 4. Téléchargez-le
 
-**Voilà !** 🎉
+**Voilà !**
 
 ---
 
@@ -48,7 +48,7 @@ Attendez que Docker affiche "✅ Services démarrés"
 
 ---
 
-## 📚 Si Vous Avez Plus de Temps
+## Si Vous Avez Plus de Temps
 
 **15 minutes :** Lire `QUICKSTART.md`
 **30 minutes :** Lire `ARCHITECTURE.md`
@@ -57,20 +57,20 @@ Attendez que Docker affiche "✅ Services démarrés"
 
 ---
 
-## 🚀 Maintenant ?
+## Maintenant ?
 
 Choisissez :
 
-- 🔍 **Juste explorer** → Ouvrir http://localhost:3000
-- 📖 **Comprendre** → Lire `README.md`
-- 🏗️ **Architecture** → Lire `ARCHITECTURE.md`
-- 🔌 **API** → Lire `API.md`
-- 💻 **Développer** → Lire `CONTRIBUTING.md`
-- ✓ **Vérifier** → Lire `TREE.md` + `CHECKLIST.md`
+- **Juste explorer** -> Ouvrir http://localhost:3000
+- **Comprendre** -> Lire `README.md`
+- **Architecture** -> Lire `ARCHITECTURE.md`
+- **API** -> Lire `API.md`
+- **Développer** -> Lire `CONTRIBUTING.md`
+- **Vérifier** -> Lire `TREE.md` + `CHECKLIST.md`
 
 ---
 
-## ⭐ Points Clés à Retenir
+## Points Clés à Retenir
 
 1. **Une commande pour tout lancer** : `docker-compose up`
 2. **Frontend** : React 18 + Vite sur port 3000
@@ -82,10 +82,3 @@ Choisissez :
 8. **Prêt prod** : Déployable dès maintenant
 
 ---
-
-**Créé le:** 16 avril 2026
-**Statut:** ✅ Prêt
-**Pour commencer:** `docker-compose up`
-
-👉 **Allez-y !** 🚀
-
