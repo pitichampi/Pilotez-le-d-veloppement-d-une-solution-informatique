@@ -2,9 +2,21 @@ import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { ConfigService } from '@nestjs/config'
-import { File } from './entities/file.entity'
 import * as fs from 'fs'
 import * as path from 'path'
+import { File } from './entities/file.entity'
+
+interface MulterFile {
+  fieldname: string
+  originalname: string
+  encoding: string
+  mimetype: string
+  size: number
+  destination: string
+  filename: string
+  path: string
+  buffer: Buffer
+}
 
 @Injectable()
 export class FilesService {
@@ -21,9 +33,9 @@ export class FilesService {
     }
   }
 
-  async create(fileData: Express.Multer.File, userId: string): Promise<File> {
-    const filename = `${Date.now()}-${fileData.originalname}`
-    const filepath = path.join(this.storagePath, filename)
+   async create(fileData: MulterFile, userId: string): Promise<File> {
+     const filename = `${Date.now()}-${fileData.originalname}`
+     const filepath = path.join(this.storagePath, filename)
 
     fs.writeFileSync(filepath, fileData.buffer)
 

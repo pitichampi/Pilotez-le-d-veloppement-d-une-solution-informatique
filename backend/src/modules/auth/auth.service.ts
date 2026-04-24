@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
-import * as bcrypt from 'bcrypt'
+import * as bcrypt from 'bcryptjs'
 import { UsersService } from '@modules/users/users.service'
 import { LoginDto, RegisterDto, AuthResponseDto } from './dto/auth.dto'
 
@@ -72,9 +72,6 @@ export class AuthService {
   private generateToken(userId: string, email: string): string {
     return this.jwtService.sign(
       { sub: userId, email },
-      {
-        expiresIn: this.configService.get('JWT_EXPIRATION') || '3600',
-      },
     )
   }
 }

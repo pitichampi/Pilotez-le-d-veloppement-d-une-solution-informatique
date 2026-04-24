@@ -14,21 +14,33 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express'
 import { FilesService } from './files.service'
 import { JwtGuard } from '@common/guards/jwt.guard'
-import { Response } from 'express'
+import type { Request } from 'express'
+
+interface MulterFile {
+  fieldname: string
+  originalname: string
+  encoding: string
+  mimetype: string
+  size: number
+  destination: string
+  filename: string
+  path: string
+  buffer: Buffer
+}
 
 @Controller('files')
 export class FilesController {
   constructor(private readonly filesService: FilesService) {}
 
-  @Post('upload')
-  @UseGuards(JwtGuard)
-  @UseInterceptors(FileInterceptor('file'))
-  async upload(@UploadedFile() file: Express.Multer.File, @Req() req: any) {
-    if (!file) {
-      throw new BadRequestException('No file uploaded')
-    }
-    return this.filesService.create(file, req.user.sub)
-  }
+   @Post('upload')
+   @UseGuards(JwtGuard)
+   @UseInterceptors(FileInterceptor('file'))
+   async upload(@UploadedFile() file: MulterFile, @Req() req: Request & { user: any }) {
+     if (!file) {
+       throw new BadRequestException('No file uploaded')
+     }
+     return this.filesService.create(file, req.user.sub)
+   }
 
   @Get()
   @UseGuards(JwtGuard)
