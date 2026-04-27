@@ -6,8 +6,7 @@ import { TypeOrmConfigService } from '@config/typeorm.config'
 import { AuthModule } from '@modules/auth/auth.module'
 import { UsersModule } from '@modules/users/users.module'
 import { FilesModule } from '@modules/files/files.module'
-import { TasksService } from '@common/tasks/tasks.service'
-import { File } from '@modules/files/entities/file.entity'
+import { TasksModule } from '@common/tasks/tasks.module'
 
 @Module({
   imports: [
@@ -22,14 +21,10 @@ import { File } from '@modules/files/entities/file.entity'
         return new TypeOrmConfigService(configService).createTypeOrmOptions()
       },
     }),
-    TypeOrmModule.forFeature([File]),
     AuthModule,
     UsersModule,
     FilesModule,
+    TasksModule,
   ],
-  providers: [TasksService],
 })
 export class AppModule {}
-
-
-
