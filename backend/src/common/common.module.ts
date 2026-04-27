@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common'
 import { JwtModule } from '@nestjs/jwt'
-import { ConfigService } from '@nestjs/config'
+import { ConfigModule, ConfigService } from '@nestjs/config'
 import { JwtGuard } from './guards/jwt.guard'
 
 @Module({
   imports: [
+    ConfigModule,
     JwtModule.registerAsync({
+      imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {
         const secret = configService.get('JWT_SECRET') || 'your-secret-key-change-in-production'
         const expiresInStr = configService.get('JWT_EXPIRATION') || '3600'
