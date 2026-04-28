@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { INestApplication, ValidationPipe } from '@nestjs/common'
-import * as request from 'supertest'
+import request = require('supertest')
 import { AppModule } from '../src/app.module'
 
 describe('Auth Endpoints (e2e)', () => {
@@ -23,7 +23,7 @@ describe('Auth Endpoints (e2e)', () => {
 
   describe('POST /api/auth/register', () => {
     const validRegisterDto = {
-      email: 'newuser@example.com',
+      email: `newuser-${Date.now()}@example.com`,
       username: 'newuser',
       password: 'securePassword123',
     }
@@ -101,7 +101,7 @@ describe('Auth Endpoints (e2e)', () => {
 
   describe('POST /api/auth/login', () => {
     const testUser = {
-      email: 'login-test@example.com',
+      email: `login-test-${Date.now()}@example.com`,
       username: 'logintestuser',
       password: 'securePassword123',
     }
