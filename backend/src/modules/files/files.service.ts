@@ -1,10 +1,12 @@
-import { Injectable, Logger, BadRequestException, NotFoundException, PayloadTooLargeException } from '@nestjs/common'
+import { Injectable, Logger, BadRequestException, NotFoundException, PayloadTooLargeException, ForbiddenException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { randomUUID } from 'crypto'
+import * as bcrypt from 'bcryptjs'
 import { File } from './entities/file.entity'
 import { CreateFileDto } from './dto/upload.dto'
 import { UploadResponseDto } from './dto/upload-response.dto'
+import { DownloadMetadataDto } from './dto/download-metadata.dto'
 import { LocalStorageService } from './storage/local-storage.service'
 
 interface MulterFile {
@@ -122,23 +124,23 @@ export class FilesService {
     return this.filesRepository.findOne({ where: { uploadToken } })
   }
 
-  /**
-   * Supprime un fichier (du stockage et de la BD)
-   * US06: Suppression - Vérifier que l'utilisateur est propriétaire
-   * @param id ID du fichier
-   * @param userId ID de l'utilisateur (pour vérification de propriété)
-   */
-  async remove(id: string, userId: string): Promise<void> {
-    const file = await this.findOne(id)
+   /**
+    * Supprime un fichier (du stockage et de la BD)
+    * US06: Suppression - Vérifier que l'utilisateur est propriétaire
+    * @param id ID du fichier
+    * @param userId ID de l'utilisateur (pour vérification de propriété)
+    */
+   async remove(id: string, userId: string): Promise<void> {
+     const file = await this.findOne(id)
 
-    if (!file) {
-      throw new NotFoundException('File not found')
-    }
+     if (!file) {
+       throw new NotFoundException('File not found')
+     }
 
-    // Vérifier que l'utilisateur est propriétaire du fichier
-    if (file.userId !== userId) {
-      throw new BadRequestException('You do not have permission to delete this file')
-    }
+     // Vérifier que l'utilisateur est propriétaire du fichier
+     if (file.userId !== userId) {
+       throw new ForbiddenException('You do not have permission to delete this file')
+     }
 
     try {
       // Supprimer du stockage
@@ -320,6 +322,149 @@ export class FilesService {
       expiresAt: file.expiresAt,
       tags: file.tags ? JSON.parse(file.tags) : undefined,
     }
+  }
+
+  /**
+   * Récupère les métadonnées d'un fichier par son uploadToken
+   * US02: Les métadonnées du fichier sont visibles avant téléchargement
+   * @param uploadToken Token d'accès unique du fichier
+   * @returns DownloadMetadataDto contenant les métadonnées
+   * @throws NotFoundException si le fichier n'existe pas
+   * @throws BadRequestException si le fichier a expiré
+   */
+  async getDownloadMetadata(uploadToken: string): Promise<DownloadMetadataDto> {
+    const file = await this.findByUploadToken(uploadToken)
+
+    if (!file) {
+      throw new NotFoundException('File not found or link is invalid')
+    }
+
+    // Vérifier l'expiration
+    if (file.expiresAt && new Date() > file.expiresAt) {
+      throw new BadRequestException('This file link has expired')
+    }
+
+    return {
+      id: file.id,
+      uploadToken: file.uploadToken,
+      originalName: file.originalName,
+      size: file.size,
+      mimetype: file.mimetype,
+      createdAt: file.createdAt,
+      expiresAt: file.expiresAt,
+      isPasswordProtected: !!file.filePasswordHash,
+    }
+  }
+
+  /**
+   * Télécharge un fichier par son uploadToken avec validation du mot de passe optionnel
+   * US02: Download - Accès au fichier via lien unique, mot de passe optionnel
+   * @param uploadToken Token d'accès unique du fichier
+   * @param password Mot de passe du fichier (optionnel, requis si filePasswordHash existe)
+   * @returns Buffer du fichier pour le téléchargement
+   * @throws NotFoundException si le fichier n'existe pas
+   * @throws BadRequestException si le mot de passe est incorrect ou manquant
+   */
+  async downloadFile(uploadToken: string, password?: string): Promise<Buffer> {
+    const file = await this.findByUploadToken(uploadToken)
+
+    if (!file) {
+      throw new NotFoundException('File not found or link is invalid')
+    }
+
+    // Vérifier l'expiration
+    if (file.expiresAt && new Date() > file.expiresAt) {
+      throw new BadRequestException('This file link has expired')
+    }
+
+    // Vérifier le mot de passe si le fichier est protégé
+    if (file.filePasswordHash) {
+      if (!password) {
+        throw new BadRequestException('This file is password protected. Please provide a password.')
+      }
+
+      const isPasswordValid = await bcrypt.compare(password, file.filePasswordHash)
+      if (!isPasswordValid) {
+        throw new BadRequestException('Invalid password')
+      }
+    }
+
+    try {
+      return await this.storageService.getFile(file.path)
+    } catch (error) {
+      this.logger.error(`Failed to retrieve file ${file.id}: ${error.message}`)
+      throw new NotFoundException('File not found in storage')
+    }
+  }
+
+  /**
+   * Sauvegarde un fichier uploadé avec mot de passe optionnel (pour US09)
+   * Met à jour la logique create pour gérer le mot de passe
+   * @param fileData Fichier uploadé par Multer
+   * @param userId ID de l'utilisateur propriétaire
+   * @param createFileDto Métadonnées optionnelles (tags, password, expiration)
+   * @returns UploadResponseDto avec les métadonnées et le token
+   */
+  async createWithPassword(
+    fileData: MulterFile,
+    userId: string,
+    createFileDto?: CreateFileDto,
+  ): Promise<UploadResponseDto> {
+    if (!fileData) {
+      throw new BadRequestException('No file uploaded')
+    }
+
+    // Générer un token UUID unique pour le fichier
+    const uploadToken = randomUUID()
+
+    // Créer un chemin de stockage structuré
+    const filename = `${uploadToken}-${fileData.originalname}`
+    const filepath = `${userId}/${filename}`
+
+    try {
+      // Sauvegarder le fichier dans le stockage
+      const savedPath = await this.storageService.saveFile(fileData.buffer, filepath)
+
+      // Hash du mot de passe si fourni
+      let filePasswordHash = null
+      if (createFileDto?.filePassword) {
+        filePasswordHash = await bcrypt.hash(createFileDto.filePassword, 10)
+      }
+
+      // Créer l'entité fichier
+      const file = this.filesRepository.create({
+        uploadToken,
+        name: filename,
+        originalName: fileData.originalname,
+        mimetype: fileData.mimetype,
+        size: fileData.size,
+        path: savedPath,
+        storageType: 'local',
+        userId,
+        tags: createFileDto?.tags ? JSON.stringify(createFileDto.tags) : null,
+        filePasswordHash,
+        expiresAt: this.calculateExpirationDate(createFileDto?.expirationDays),
+      })
+
+      const savedFile = await this.filesRepository.save(file)
+
+      this.logger.log(`File uploaded successfully: ${uploadToken} by user ${userId}`)
+
+      return this.mapToUploadResponseDto(savedFile)
+    } catch (error) {
+      this.logger.error(`Failed to upload file: ${error.message}`)
+      throw new BadRequestException(`Failed to save file: ${error.message}`)
+    }
+  }
+
+  /**
+   * Vérifie si un fichier a expiré
+   * US10: Vérification automatique d'expiration
+   * @param file Entité File
+   * @returns true si le fichier a expiré, false sinon
+   */
+  isFileExpired(file: File): boolean {
+    return file.expiresAt ? new Date() > file.expiresAt : false
   }
 }
 

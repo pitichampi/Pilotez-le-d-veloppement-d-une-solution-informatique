@@ -52,5 +52,8 @@ export const filesApi = {
   download: (id: string) => api.get(`/files/${id}/download`, {
     responseType: 'blob',
   }),
+  getMetadata: (token: string) => api.get(`/files/share/${token}/metadata`),
+  downloadPublic: (token: string, password?: string) => api.post(`/files/share/${token}/download`, { password }, {
+    responseType: 'blob',
+  }),
 }
-

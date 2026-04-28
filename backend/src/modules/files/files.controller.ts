@@ -10,13 +10,20 @@ import {
   Req,
   BadRequestException,
   StreamableFile,
+  Body,
+  HttpCode,
+  Response,
+  Res,
 } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
-import { diskStorage } from 'multer'
+import { memoryStorage } from 'multer'
 import { FilesService } from './files.service'
 import { JwtGuard } from '@common/guards/jwt.guard'
+import { ParseUuidPipe } from '@common/pipes/parse-uuid.pipe'
 import { UploadResponseDto } from './dto/upload-response.dto'
-import type { Request } from 'express'
+import { DownloadMetadataDto } from './dto/download-metadata.dto'
+import { DownloadFileDto } from './dto/download-file.dto'
+import type { Request, Response as ExpressResponse } from 'express'
 
 interface MulterFile {
   fieldname: string
@@ -51,14 +58,7 @@ export class FilesController {
   @UseGuards(JwtGuard)
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: diskStorage({
-        destination: '/tmp/uploads', // Destination temporaire avant traitement
-        filename: (req, file, cb) => {
-          // Générer un nom temporaire unique
-          const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`
-          cb(null, `${uniqueSuffix}-${file.originalname}`)
-        },
-      }),
+      storage: memoryStorage(),
       limits: {
         fileSize: 1024 * 1024 * 1024, // 1 GB
       },
@@ -92,22 +92,60 @@ export class FilesController {
   }
 
   /**
-   * Télécharge un fichier
-   * US02: Download avec POST pour sécurisation du mot de passe (implémenté en US02)
+   * Récupère les métadonnées d'un fichier pour téléchargement public
+   * US02: Les métadonnées du fichier sont visibles avant téléchargement
+   * GET /api/files/share/:uploadToken/metadata
+   * Accessible sans authentification (via lien publique)
+   * @param uploadToken Token d'accès unique du fichier
+   * @returns DownloadMetadataDto contenant nom, taille, type, etc.
+   */
+  @Get('share/:uploadToken/metadata')
+  async getDownloadMetadata(@Param('uploadToken', new ParseUuidPipe()) uploadToken: string): Promise<DownloadMetadataDto> {
+    return this.filesService.getDownloadMetadata(uploadToken)
+  }
+
+  /**
+   * Télécharge un fichier via lien public
+   * US02: Download - Endpoint POST pour sécurisation du mot de passe
+   * POST /api/files/share/:uploadToken/download
+   * Accessible sans authentification (via lien publique)
+   * @param uploadToken Token d'accès unique du fichier
+   * @param downloadFileDto Contient optionnellement le mot de passe
+   * @param res Response object pour envoyer le fichier
+   * @returns StreamableFile pour télécharger le fichier
+   */
+  @Post('share/:uploadToken/download')
+  @HttpCode(200)
+  async downloadFile(
+    @Param('uploadToken', new ParseUuidPipe()) uploadToken: string,
+    @Body() downloadFileDto: DownloadFileDto,
+    @Res() res: ExpressResponse,
+  ) {
+    const buffer = await this.filesService.downloadFile(uploadToken, downloadFileDto.password)
+    const file = await this.filesService.findByUploadToken(uploadToken)
+
+    res.contentType('application/octet-stream')
+    res.setHeader('Content-Disposition', `attachment; filename="${file.originalName}"`)
+    res.end(buffer)
+  }
+
+  /**
+   * Télécharge un fichier (endpoint protégé pour les propriétaires)
+   * US02: Download - Endpoint pour les propriétaires du fichier
    * GET /api/files/:id/download
    * @param id ID du fichier
+   * @param res Response object pour envoyer le fichier
    * @returns StreamableFile pour le téléchargement
    */
   @Get(':id/download')
   @UseGuards(JwtGuard)
-  async download(@Param('id') id: string) {
+  async download(@Param('id', new ParseUuidPipe()) id: string, @Res() res: ExpressResponse) {
     const buffer = await this.filesService.getFileBuffer(id)
     const file = await this.filesService.findOne(id)
 
-    return new StreamableFile(buffer, {
-      type: 'application/octet-stream',
-      disposition: `attachment; filename="${file.originalName}"`,
-    })
+    res.contentType('application/octet-stream')
+    res.setHeader('Content-Disposition', `attachment; filename="${file.originalName}"`)
+    res.end(buffer)
   }
 
   /**
@@ -119,7 +157,7 @@ export class FilesController {
    */
   @Delete(':id')
   @UseGuards(JwtGuard)
-  async remove(@Param('id') id: string, @Req() req: any) {
+  async remove(@Param('id', new ParseUuidPipe()) id: string, @Req() req: any) {
     await this.filesService.remove(id, req.user.sub)
     return { message: 'File deleted successfully' }
   }
