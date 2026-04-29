@@ -8,27 +8,55 @@ import { Loader } from '@components/ui/Loader'
 import { Download, FileText, Calendar, Shield, AlertCircle } from 'lucide-react'
 import { getFileMetadata, downloadFile } from '@api/index'
 
+/**
+ * Interface pour les métadonnées du fichier
+ * Récupérées via GET /api/files/share/{uploadToken}/metadata
+ */
 interface FileMetadata {
-  id: string
-  uploadToken: string
-  originalName: string
-  size: number
-  mimetype: string
-  createdAt: string
-  expiresAt: string | null
-  isPasswordProtected: boolean
+  id: string                      // UUID du fichier en BDD
+  uploadToken: string             // Token d'accès public (UUID v4)
+  originalName: string            // Nom original du fichier
+  size: number                    // Taille en bytes
+  mimetype: string                // Type MIME (application/pdf, image/png, etc.)
+  createdAt: string               // Date d'upload (ISO 8601)
+  expiresAt: string | null        // Date d'expiration ou null
+  isPasswordProtected: boolean     // Indique si fichier protégé par mot de passe
 }
 
+/**
+ * Page de téléchargement public (US02)
+ * Accessible via /download/{uploadToken}
+ *
+ * Fonctionnalités :
+ * - Affichage des métadonnées du fichier (nom, taille, type)
+ * - Gestion des fichiers protégés par mot de passe
+ * - Téléchargement sécurisé (POST, mot de passe dans le body)
+ * - Gestion des erreurs (fichier expiré, introuvable, mot de passe incorrect)
+ * - Design responsive avec TailwindCSS
+ *
+ * États :
+ * - loading : Chargement des métadonnées
+ * - downloading : Téléchargement en cours
+ * - error : Messages d'erreur
+ * - metadata : Données du fichier
+ * - password : Mot de passe saisi par l'utilisateur
+ */
 export function DownloadPage() {
+  // Récupérer le token depuis l'URL (/download/:token)
   const { token } = useParams<{ token: string }>()
   const navigate = useNavigate()
 
-  const [metadata, setMetadata] = useState<FileMetadata | null>(null)
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [downloading, setDownloading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  // États du composant
+  const [metadata, setMetadata] = useState<FileMetadata | null>(null)  // Métadonnées du fichier
+  const [password, setPassword] = useState('')                         // Mot de passe saisi
+  const [loading, setLoading] = useState(true)                         // Chargement des métadonnées
+  const [downloading, setDownloading] = useState(false)                // Téléchargement en cours
+  const [error, setError] = useState<string | null>(null)              // Messages d'erreur
 
+  /**
+   * Effect : Charger les métadonnées du fichier au montage du composant
+   * Déclenche l'appel API GET /api/files/share/{token}/metadata
+   */
   useEffect(() => {
     if (!token) {
       setError('Token de fichier manquant')
@@ -39,6 +67,15 @@ export function DownloadPage() {
     loadFileMetadata()
   }, [token])
 
+  /**
+   * Charge les métadonnées du fichier via l'API
+   * GET /api/files/share/{uploadToken}/metadata
+   *
+   * Erreurs gérées :
+   * - 404 : Fichier introuvable
+   * - 410 : Fichier expiré
+   * - Autres : Messages d'erreur génériques
+   */
   const loadFileMetadata = async () => {
     try {
       setLoading(true)
@@ -46,12 +83,29 @@ export function DownloadPage() {
       const data = await getFileMetadata(token!)
       setMetadata(data)
     } catch (err: any) {
+      // Message d'erreur du serveur ou défaut
       setError(err.response?.data?.message || 'Fichier introuvable ou lien expiré')
     } finally {
       setLoading(false)
     }
   }
 
+  /**
+   * Télécharge le fichier depuis l'API
+   * POST /api/files/share/{uploadToken}/download
+   *
+   * Processus :
+   * 1. Appel API avec mot de passe (optionnel)
+   * 2. Récupération du buffer binaire
+   * 3. Création d'un Blob
+   * 4. Déclenchement du téléchargement navigateur
+   * 5. Nettoyage des ressources (URL.revokeObjectURL)
+   *
+   * Erreurs gérées :
+   * - 401 : Mot de passe incorrect
+   * - 410 : Fichier expiré
+   * - Autres : Messages d'erreur serveur
+   */
   const handleDownload = async () => {
     if (!metadata) return
 
@@ -59,9 +113,16 @@ export function DownloadPage() {
       setDownloading(true)
       setError(null)
 
+      // Appel API POST pour télécharger le fichier (sécurité : mot de passe en body)
       const response = await downloadFile(metadata.uploadToken, password || undefined)
 
-      // Créer un blob et déclencher le téléchargement
+      /**
+       * Créer un blob et déclencher le téléchargement navigateur
+       * Cette approche évite une redirection et permet le contrôle de l'UI
+       * blob : données binaires du fichier
+       * url : URL locale (blob:)
+       * link : élément <a> simulé
+       */
       const blob = new Blob([response.data])
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
@@ -70,7 +131,7 @@ export function DownloadPage() {
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
+      window.URL.revokeObjectURL(url)  // Libérer la mémoire
 
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erreur lors du téléchargement')
@@ -79,6 +140,13 @@ export function DownloadPage() {
     }
   }
 
+  /**
+   * Formate une taille en bytes en KB/MB/GB
+   * Exemple : 1024 → "1 KB", 1048576 → "1 MB"
+   *
+   * @param bytes Nombre de bytes
+   * @returns String formatée avec unité
+   */
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes'
     const k = 1024
@@ -87,6 +155,13 @@ export function DownloadPage() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
+  /**
+   * Formate une date ISO 8601 en français lisible
+   * Exemple : 2025-04-28T10:30:00Z → "28 avril 2025 à 10:30"
+   *
+   * @param dateString Date ISO 8601
+   * @returns String formatée en français
+   */
   const formatDate = (dateString: string): string => {
     return new Date(dateString).toLocaleDateString('fr-FR', {
       year: 'numeric',
