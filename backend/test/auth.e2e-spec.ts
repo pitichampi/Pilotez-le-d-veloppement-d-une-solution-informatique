@@ -176,8 +176,8 @@ describe('Auth Endpoints (e2e)', () => {
       const response = await request(app.getHttpServer())
         .post('/api/auth/register')
         .send({
-          email: 'me-test@example.com',
-          username: 'metestuser',
+          email: `me-test-${Date.now()}@example.com`,
+          username: `metestuser-${Date.now()}`,
           password: 'securePassword123',
         })
 
