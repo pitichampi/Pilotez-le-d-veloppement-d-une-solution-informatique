@@ -1,10 +1,28 @@
 import { InputHTMLAttributes, forwardRef } from 'react'
 import { cn } from '@utils/cn'
 
+/**
+ * Props du composant Input
+ * Étend les propriétés HTML standard des champs de saisie
+ */
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+  /** Classes CSS supplémentaires */
   className?: string
 }
 
+/**
+ * Composant Input réutilisable
+ *
+ * Utilise forwardRef pour permettre l'accès au DOM (contrôle direct du champ)
+ * Fournit :
+ * - Bordure grise avec focus orange
+ * - Hauteur et padding standard
+ * - États désactivé et placeholder
+ *
+ * @example
+ * const inputRef = useRef<HTMLInputElement>(null)
+ * <Input ref={inputRef} type="email" placeholder="Email" />
+ */
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ className, ...props }, ref) => {
     return (
