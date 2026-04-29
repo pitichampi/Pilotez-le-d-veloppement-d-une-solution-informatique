@@ -6,7 +6,7 @@ import { Input } from '@components/ui/Input'
 import { Alert, AlertDescription } from '@components/ui/Alert'
 import { Loader } from '@components/ui/Loader'
 import { Download, FileText, Calendar, Shield, AlertCircle } from 'lucide-react'
-import { getFileMetadata, downloadFile } from '@api/files'
+import { getFileMetadata, downloadFile } from '@api/index'
 
 interface FileMetadata {
   id: string
@@ -46,7 +46,6 @@ export function DownloadPage() {
       const data = await getFileMetadata(token!)
       setMetadata(data)
     } catch (err: any) {
-      console.error('Erreur lors du chargement des métadonnées:', err)
       setError(err.response?.data?.message || 'Fichier introuvable ou lien expiré')
     } finally {
       setLoading(false)
@@ -74,7 +73,6 @@ export function DownloadPage() {
       window.URL.revokeObjectURL(url)
 
     } catch (err: any) {
-      console.error('Erreur lors du téléchargement:', err)
       setError(err.response?.data?.message || 'Erreur lors du téléchargement')
     } finally {
       setDownloading(false)

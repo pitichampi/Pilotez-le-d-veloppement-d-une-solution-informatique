@@ -57,3 +57,14 @@ export const filesApi = {
     responseType: 'blob',
   }),
 }
+
+// Fonctions helper pour US02 (téléchargement public)
+export const getFileMetadata = async (token: string) => {
+  const response = await filesApi.getMetadata(token)
+  return response.data
+}
+
+export const downloadFile = async (token: string, password?: string) => {
+  return filesApi.downloadPublic(token, password)
+}
+
