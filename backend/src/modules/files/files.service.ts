@@ -1,3 +1,40 @@
+/**
+ * @file files.service.ts
+ * @description Service de gestion des fichiers pour DataShare
+ *
+ * Responsabilités principales :
+ * - Upload sécurisé de fichiers (validation MIME, taille, extension)
+ * - Stockage physique des fichiers via StorageService abstrait
+ * - Gestion métadonnées en base de données (TypeORM)
+ * - Téléchargement public via token UUID unique
+ * - Gestion des mots de passe (Bcrypt, coût 10)
+ * - Gestion de l'expiration des liens (1-7 jours)
+ * - Suppression avec vérification de propriété
+ *
+ * Architecture :
+ * - StorageService : abstraction du stockage (local → S3 possible)
+ * - Repository TypeORM : ORM pour interagir avec PostgreSQL
+ * - Bcrypt : hachage des mots de passe (US09)
+ *
+ * User Stories couvertes :
+ * - US01/07: Upload avec token UUID unique, limite 1 Go
+ * - US02: Download public via token avec validation expiration
+ * - US05/06: Historique et suppression réservés au propriétaire
+ * - US08: Tags (0 à N, sérialisés en JSON)
+ * - US09: Mot de passe optionnel hashé Bcrypt
+ * - US10: Expiration 1-7 jours, purge automatique
+ *
+ * Sécurité :
+ * - Validation des types MIME (liste blanche)
+ * - Détection des signatures de fichiers (magic bytes)
+ * - Extensions interdites : .exe, .bat, .sh, .msi, .cmd, .ps1
+ * - Hachage Bcrypt (cost 10) pour tous les mots de passe
+ * - Vérification d'ownership avant suppression/accès
+ *
+ * @author DataShare Team
+ * @version 1.0.0
+ */
+
 import { Injectable, Logger, BadRequestException, NotFoundException, PayloadTooLargeException, ForbiddenException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
@@ -9,6 +46,21 @@ import { UploadResponseDto } from './dto/upload-response.dto'
 import { DownloadMetadataDto } from './dto/download-metadata.dto'
 import { LocalStorageService } from './storage/local-storage.service'
 
+/**
+ * Interface représentant un fichier uploadé par Multer
+ * Propriétés fournies par le middleware multer lors d'un upload
+ *
+ * @interface MulterFile
+ * @property {string} fieldname - Nom du champ form HTML (ex: "file")
+ * @property {string} originalname - Nom original du fichier client
+ * @property {string} encoding - Encoding du fichier (ex: "7bit", "binary")
+ * @property {string} mimetype - Type MIME détecté (ex: "application/pdf")
+ * @property {number} size - Taille en bytes du fichier uploadé
+ * @property {string} destination - Dossier de destination du fichier
+ * @property {string} filename - Nom du fichier sur le serveur
+ * @property {string} path - Chemin complet du fichier stocké
+ * @property {Buffer} buffer - Contenu binaire du fichier en mémoire
+ */
 interface MulterFile {
   fieldname: string
   originalname: string
@@ -22,14 +74,31 @@ interface MulterFile {
 }
 
 /**
- * Service de gestion des fichiers
- * Gère l'upload, le stockage, la récupération et la suppression des fichiers
- * US01/07: Upload avec token UUID unique et limite 1 Go
+ * Service de gestion des fichiers (Injectable NestJS)
+ * Fournit les méthodes de CRUD pour les fichiers
+ *
+ * Injection de dépendances :
+ * - filesRepository: TypeORM Repository pour la table "file"
+ * - storageService: Service abstrait de stockage (implementation: LocalStorageService)
+ *
+ * Tous les fichiers sont sauvegardés en BD et sur le disque
+ * Chemin de stockage : /uploads/{userId}/{uploadToken}-{originalname}
+ *
+ * @example
+ * const uploadedFile = await filesService.create(multerFile, userId, { tags: ['important'], expirationDays: 3 })
+ * const metadata = await filesService.getDownloadMetadata(uploadToken)
+ * const buffer = await filesService.downloadFile(uploadToken, optionalPassword)
  */
 @Injectable()
 export class FilesService {
+  /** Logger NestJS pour tracer les actions importantes */
   private readonly logger = new Logger('FilesService')
 
+  /**
+   * Constructeur avec injection de dépendances
+   * @param {Repository<File>} filesRepository - Connexion à la table "file" (PostgreSQL)
+   * @param {LocalStorageService} storageService - Service de stockage des fichiers
+   */
   constructor(
     @InjectRepository(File)
     private filesRepository: Repository<File>,
@@ -178,13 +247,35 @@ export class FilesService {
 
   /**
    * Valide un fichier uploadé selon les critères de sécurité
-   * US01: Validation de taille, extensions et MIME types
-   * @param file Fichier uploadé
-   * @throws BadRequestException ou PayloadTooLargeException
+   * US01: Validation obligatoire pour tous les uploads (authentifié ou anonyme)
+   *
+   * Valide 4 critères :
+   * 1. Taille : max 1 Go
+   * 2. Extension : blacklist des exécutables (.exe, .bat, .sh, etc.)
+   * 3. Type MIME annoncé : whitelist stricte (PDF, Office, images, audio, video, archives)
+   * 4. Signature du fichier : détection magique (PE header, script shell, etc.)
+   *
+   * @param {MulterFile} file - Fichier uploadé par Multer
+   * @throws {PayloadTooLargeException} Si le fichier dépasse 1 Go
+   * @throws {BadRequestException} Si extension interdite, fichier vide, ou MIME type invalide
+   *
+   * @example
+   * try {
+   *   filesService.validateFile(multerFile)
+   * } catch (error) {
+   *   if (error instanceof PayloadTooLargeException) {
+   *     // Fichier trop gros
+   *   }
+   * }
    */
   validateFile(file: MulterFile): void {
     const MAX_FILE_SIZE = 1024 * 1024 * 1024 // 1 GB
 
+    /**
+     * Liste blanche des types MIME autorisés
+     * Limitation intentionnelle pour sécurité
+     * Couvre : documents, images, vidéos, archives, données
+     */
     const ALLOWED_MIME_TYPES = new Set([
       'application/pdf',
       'application/msword',
@@ -214,6 +305,11 @@ export class FilesService {
       'text/xml',
     ])
 
+    /**
+     * Extensions interdites (blacklist)
+     * Focus sur les exécutables et scripts dangereux
+     * .exe, .bat (Windows), .sh (Linux/Mac), .ps1 (PowerShell), etc.
+     */
     const FORBIDDEN_EXTENSIONS = new Set([
       '.exe',
       '.bat',
@@ -260,8 +356,22 @@ export class FilesService {
   }
 
   /**
-   * Valide le type MIME en détectant la signature du fichier
-   * @param file Fichier uploadé
+   * Valide le type MIME en détectant la signature réelle du fichier (magic bytes)
+   *
+   * Couche de sécurité supplémentaire pour détecter les fichiers mal nommés
+   * Exemple : fichier .pdf qui est en réalité un .exe renommé
+   *
+   * Détections implémentées :
+   * - PE header (MZ) : exécutables Windows (.exe, .dll, .msi)
+   * - Shell script shebang (#!) : scripts bash, python, perl
+   *
+   * Pour une sécurité maximale, utiliser la librarie `file-type` en production
+   *
+   * @param {MulterFile} file - Fichier uploadé avec le buffer accessible
+   * @throws {BadRequestException} Si signature dangereuse détectée
+   *
+   * @private
+   * @internal
    */
   private validateMimeTypeSignature(file: MulterFile): void {
     if (!file.buffer || file.buffer.length === 0) {
@@ -270,13 +380,23 @@ export class FilesService {
 
     const buffer = file.buffer
 
-    // Protection: Rejeter les exécutables PE
+    /**
+     * Détection 1: PE header (Portable Executable)
+     * Signature : bytes "MZ" (0x4D 0x5A)
+     * Indicateur : fichier exécutable Windows (.exe, .dll, .msi, etc.)
+     * Risque : exécution de code malveillant
+     */
     if (buffer.length >= 2 && buffer[0] === 0x4d && buffer[1] === 0x5a) {
       // MZ header
       throw new BadRequestException('Executable file detected (PE header found)')
     }
 
-    // Protection: Rejeter les scripts
+    /**
+     * Détection 2: Script shell shebang
+     * Signature : commence par "#!" (0x23 0x21)
+     * Exemples : #!/bin/bash, #!/usr/bin/python, etc.
+     * Risque : exécution de scripts non détectés
+     */
     const headerStr = buffer.toString('utf8', 0, Math.min(10, buffer.length)).toLowerCase()
     if (headerStr.includes('#!/')) {
       throw new BadRequestException('Shell script detected')
@@ -285,9 +405,23 @@ export class FilesService {
 
   /**
    * Calcule la date d'expiration du fichier
-   * US10: 1-7 jours, purge automatique
-   * @param expirationDays Nombre de jours (1-7 ou undefined)
-   * @returns Date d'expiration ou null si pas d'expiration
+   * US10: Expiration 1-7 jours, purge automatique via Cron
+   *
+   * Logique :
+   * - Si expirationDays ≠ undefined : calcul une date future + N jours
+   * - Si expirationDays < 1 ou > 7 : log warning et utilise 7 jours par défaut
+   * - Si expirationDays = undefined/null : retourne null (pas d'expiration)
+   *
+   * La purge automatique (suppression des fichiers expirés) est gérée par
+   * une tâche Cron quotidienne dans FilesModule à minuit UTC
+   *
+   * @param {number} [expirationDays] - Nombre de jours avant expiration (1-7), undefined = pas d'expiration
+   * @returns {Date | null} Date ISO 8601 UTC d'expiration, ou null si pas d'expiration
+   *
+   * @example
+   * const exp1 = calculateExpirationDate(3)     // Date + 3 jours
+   * const exp2 = calculateExpirationDate(10)    // Date + 7 jours (log warning)
+   * const exp3 = calculateExpirationDate()      // null (pas d'expiration)
    */
   private calculateExpirationDate(expirationDays?: number): Date | null {
     if (!expirationDays) {
@@ -459,9 +593,25 @@ export class FilesService {
 
   /**
    * Vérifie si un fichier a expiré
-   * US10: Vérification automatique d'expiration
-   * @param file Entité File
-   * @returns true si le fichier a expiré, false sinon
+   * US10: Vérification automatique d'expiration à chaque accès
+   *
+   * Logique :
+   * - Si file.expiresAt est null : fichier n'expire jamais → false
+   * - Si file.expiresAt est dans le passé : fichier expiré → true
+   * - Si file.expiresAt est dans le futur : fichier valide → false
+   *
+   * Appelée lors de :
+   * - POST /files/{token}/download : avant téléchargement
+   * - GET /files/{token} : avant affichage des métadonnées
+   * - Tâche Cron de purge : suppression des fichiers expirés
+   *
+   * @param {File} file - Entité File depuis la base de données
+   * @returns {boolean} true si le fichier a expiré, false sinon
+   *
+   * @example
+   * if (filesService.isFileExpired(file)) {
+   *   throw new BadRequestException('This file link has expired')
+   * }
    */
   isFileExpired(file: File): boolean {
     return file.expiresAt ? new Date() > file.expiresAt : false
