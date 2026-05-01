@@ -1,6 +1,8 @@
 import { ReactNode } from 'react'
 import { useAuth } from '@hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
+import { Button } from '@components/ui/Button'
+import { LogOut } from 'lucide-react'
 
 interface LayoutProps {
   /**
@@ -13,10 +15,10 @@ interface LayoutProps {
  * Composant Layout (mise en page générale)
  *
  * Fournit :
- * - En-tête avec barre de navigation
+ * - En-tête avec barre de navigation cohérente au design
  * - Affichage du nom d'utilisateur connecté
- * - Bouton de déconnexion
- * - Conteneur principal pour le contenu
+ * - Bouton de déconnexion stylisé
+ * - Conteneur principal avec fond crème/dégradé orange
  *
  * Utilisé par toutes les pages protégées
  */
@@ -37,12 +39,12 @@ export const Layout = ({ children }: LayoutProps) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50">
       {/* En-tête avec barre de navigation */}
-      <header className="bg-white shadow">
+      <header className="bg-white shadow-sm border-b border-orange-100">
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           {/* Logo/Titre */}
-          <div className="text-2xl font-bold text-gray-900">DataShare</div>
+          <div className="text-2xl font-bold text-orange-600">DataShare</div>
 
           {/* Section droite : Email et bouton déconnexion */}
           {isAuthenticated && (
@@ -51,13 +53,15 @@ export const Layout = ({ children }: LayoutProps) => {
               <span className="text-sm text-gray-600">{user?.email}</span>
 
               {/* Bouton déconnexion */}
-              <button
+              <Button
                 onClick={handleLogout}
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                variant="outline"
+                size="sm"
                 title="Déconnecte l'utilisateur et redirige vers /login"
               >
+                <LogOut className="h-4 w-4 mr-2" />
                 Déconnexion
-              </button>
+              </Button>
             </div>
           )}
         </nav>

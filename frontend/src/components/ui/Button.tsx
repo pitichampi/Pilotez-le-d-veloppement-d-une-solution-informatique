@@ -49,9 +49,9 @@ export function Button({
 
   // Classes spécifiques selon le variant
   const variantClasses = {
-    default: "bg-orange-600 text-white hover:bg-orange-700",
-    outline: "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50",
-    ghost: "text-gray-700 hover:bg-gray-100",
+    default: "bg-orange-600 text-white hover:bg-orange-700 active:bg-orange-800",
+    outline: "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 active:bg-gray-100",
+    ghost: "text-gray-700 hover:bg-gray-100 active:bg-gray-200",
     link: "text-orange-600 underline-offset-4 hover:underline"
   }
 

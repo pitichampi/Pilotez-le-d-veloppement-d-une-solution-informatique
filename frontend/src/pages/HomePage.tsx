@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react'
 import { filesApi } from '@api/index'
+import { Card } from '@components/ui/Card'
+import { Button } from '@components/ui/Button'
+import { Alert, AlertDescription } from '@components/ui/Alert'
+import { Loader } from '@components/ui/Loader'
+import { Upload, Download, Trash2, FileText, Calendar } from 'lucide-react'
 
 /**
  * Page d'accueil utilisateur (US01/05/06)
@@ -9,6 +14,7 @@ import { filesApi } from '@api/index'
  * - Consulter l'historique des uploads (US05)
  * - Télécharger ses fichiers
  * - Supprimer un fichier (US06)
+ * - Design harmonisé avec palette orange/crème
  *
  * Flux :
  * 1. Au chargement : récupérer la liste des fichiers de l'utilisateur
@@ -23,8 +29,14 @@ export const HomePage = () => {
   /** Indicateur de chargement de la liste */
   const [isLoading, setIsLoading] = useState(false)
 
+  /** Indicateur d'upload en cours */
+  const [isUploading, setIsUploading] = useState(false)
+
   /** Message d'erreur à afficher */
   const [error, setError] = useState('')
+
+  /** Message de succès à afficher */
+  const [success, setSuccess] = useState('')
 
   /**
    * Charge la liste des fichiers au montage du composant
@@ -43,6 +55,7 @@ export const HomePage = () => {
     try {
       const response = await filesApi.getAll()
       setFiles(response.data)
+      setError('')
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erreur lors du chargement')
     } finally {
@@ -69,100 +82,203 @@ export const HomePage = () => {
     const file = e.target.files?.[0]
     if (!file) return
 
+    setIsUploading(true)
+    setError('')
+    setSuccess('')
+
     try {
       // Uploader le fichier (US01/07)
       await filesApi.upload(file)
+
+      // Afficher un message de succès
+      setSuccess(`Fichier "${file.name}" uploadé avec succès !`)
 
       // Actualiser la liste
       await loadFiles()
 
       // Réinitialiser l'input
       e.target.value = ''
+
+      // Masquer le message après 3 secondes
+      setTimeout(() => setSuccess(''), 3000)
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erreur lors de l\'upload')
+    } finally {
+      setIsUploading(false)
     }
+  }
+
+  /**
+   * Formate une taille en bytes en KB/MB/GB
+   * @param bytes Nombre de bytes
+   * @returns String formatée avec unité
+   */
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  }
+
+  /**
+   * Formate une date ISO 8601 en français lisible
+   * @param dateString Date ISO 8601
+   * @returns String formatée en français
+   */
+  const formatDate = (dateString: string): string => {
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
   }
 
   return (
     <div className="space-y-6">
       {/* En-tête */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Accueil</h1>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Accueil</h1>
+        <p className="text-gray-600">Gérez vos fichiers et partagez-les en toute sécurité</p>
       </div>
 
       {/* Messages d'erreur */}
       {error && (
-        <div className="rounded-md bg-red-50 p-4">
-          <div className="text-sm font-medium text-red-800">{error}</div>
-        </div>
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Messages de succès */}
+      {success && (
+        <Alert variant="success">
+          <AlertDescription>{success}</AlertDescription>
+        </Alert>
       )}
 
       {/* Section Upload (US01/07) */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-semibold mb-4">Uploader un fichier</h2>
-        <input
-          type="file"
-          onChange={handleFileUpload}
-          className="block w-full text-sm text-gray-500
-            file:mr-4 file:py-2 file:px-4
-            file:rounded-md file:border-0
-            file:text-sm file:font-semibold
-            file:bg-blue-50 file:text-blue-700
-            hover:file:bg-blue-100"
-        />
-      </div>
+      <Card className="p-8">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="inline-flex items-center justify-center w-10 h-10 bg-orange-100 rounded-lg">
+            <Upload className="h-6 w-6 text-orange-600" />
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900">Uploader un fichier</h2>
+        </div>
+
+        <div className="border-2 border-dashed border-orange-200 rounded-lg p-8 text-center hover:border-orange-300 transition-colors">
+          <input
+            id="file-upload"
+            type="file"
+            onChange={handleFileUpload}
+            disabled={isUploading}
+            className="hidden"
+          />
+          <label
+            htmlFor="file-upload"
+            className="cursor-pointer block"
+          >
+            {isUploading ? (
+              <>
+                <Loader size="lg" className="mx-auto mb-3" />
+                <p className="text-gray-600 font-medium">Upload en cours...</p>
+              </>
+            ) : (
+              <>
+                <Upload className="h-12 w-12 text-orange-500 mx-auto mb-3" />
+                <p className="text-gray-900 font-medium mb-1">Déposez votre fichier ici ou cliquez pour sélectionner</p>
+                <p className="text-sm text-gray-500">Taille maximale : 1 Go. Extensions interdites : .exe, .bat, .sh, .msi, .cmd, .ps1</p>
+              </>
+            )}
+          </label>
+        </div>
+      </Card>
 
       {/* Section Historique (US05) */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-semibold mb-4">Fichiers ({files.length})</h2>
+      <Card className="p-8">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="inline-flex items-center justify-center w-10 h-10 bg-orange-100 rounded-lg">
+            <FileText className="h-6 w-6 text-orange-600" />
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900">Fichiers uploadés ({files.length})</h2>
+        </div>
+
         {isLoading ? (
-          <p className="text-gray-600">Chargement...</p>
+          <div className="flex flex-col items-center justify-center py-12">
+            <Loader size="lg" />
+            <p className="mt-4 text-gray-600">Chargement des fichiers...</p>
+          </div>
         ) : files.length === 0 ? (
-          <p className="text-gray-600">Aucun fichier uploadé</p>
+          <div className="text-center py-12">
+            <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-600">Aucun fichier uploadé pour le moment</p>
+            <p className="text-sm text-gray-500 mt-2">Commencez par uploader votre premier fichier ci-dessus</p>
+          </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {files.map((file: any) => (
               <div
                 key={file.id}
-                className="flex justify-between items-center p-2 bg-gray-50 rounded"
+                className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
               >
-                {/* Nom du fichier */}
-                <span>{file.name}</span>
+                {/* Info du fichier */}
+                <div className="flex-1 mb-4 sm:mb-0">
+                  <h3 className="font-medium text-gray-900 mb-1">{file.name}</h3>
+                  <div className="flex flex-col sm:flex-row gap-3 text-sm text-gray-600">
+                    <span className="flex items-center gap-1">
+                      <FileText className="h-4 w-4" />
+                      {formatFileSize(file.size)}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
+                      {formatDate(file.createdAt)}
+                    </span>
+                  </div>
+                </div>
 
-                {/* Actions : Télécharger / Supprimer */}
-                <div className="space-x-2">
-                  {/* Bouton télécharger : récupère depuis son espace privé */}
-                  <button
+                {/* Actions */}
+                <div className="flex gap-2 w-full sm:w-auto">
+                  {/* Bouton télécharger */}
+                  <Button
                     onClick={() => filesApi.download(file.id)}
-                    className="text-blue-600 hover:text-blue-800"
+                    variant="outline"
+                    size="sm"
                     title="Télécharger ce fichier"
+                    className="flex-1 sm:flex-none"
                   >
+                    <Download className="h-4 w-4 mr-2" />
                     Télécharger
-                  </button>
+                  </Button>
 
                   {/* Bouton supprimer (US06) */}
-                  <button
+                  <Button
                     onClick={async () => {
-                      if (confirm('Êtes-vous sûr de vouloir supprimer ce fichier ?')) {
+                      if (confirm('Êtes-vous sûr de vouloir supprimer ce fichier ? Cette action est irréversible.')) {
                         try {
                           await filesApi.delete(file.id)
+                          setSuccess('Fichier supprimé avec succès')
                           await loadFiles()
+                          setTimeout(() => setSuccess(''), 3000)
                         } catch (err: any) {
                           setError(err.response?.data?.message || 'Erreur de suppression')
                         }
                       }
                     }}
-                    className="text-red-600 hover:text-red-800"
+                    variant="outline"
+                    size="sm"
                     title="Supprimer ce fichier (irréversible)"
+                    className="flex-1 sm:flex-none text-red-600 hover:text-red-700 hover:bg-red-50"
                   >
+                    <Trash2 className="h-4 w-4 mr-2" />
                     Supprimer
-                  </button>
+                  </Button>
                 </div>
               </div>
             ))}
           </div>
         )}
-      </div>
+      </Card>
     </div>
   )
 }
