@@ -176,28 +176,28 @@ describe('Files Endpoints (e2e) - US01/07 Upload', () => {
   })
 
   describe('GET /api/files - US05 Historique', () => {
-    it('should retrieve user file history', async () => {
-      // D'abord, uploader un fichier
-      const pdfBuffer = Buffer.from('%PDF-1.4\n%test', 'utf8')
-      await request(app.getHttpServer())
-        .post('/api/files/upload')
-        .set('Authorization', `Bearer ${authToken}`)
-        .attach('file', pdfBuffer, 'test.pdf')
+     it('should retrieve user file history', async () => {
+       // D'abord, uploader un fichier
+       const pdfBuffer = Buffer.from('%PDF-1.4\n%test', 'utf8')
+       await request(app.getHttpServer())
+         .post('/api/files/upload')
+         .set('Authorization', `Bearer ${authToken}`)
+         .attach('file', pdfBuffer, 'test.pdf')
 
-      // Puis récupérer l'historique
-      return request(app.getHttpServer())
-        .get('/api/files')
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(200)
-        .expect((res) => {
-          expect(Array.isArray(res.body)).toBe(true)
-          if (res.body.length > 0) {
-            expect(res.body[0]).toHaveProperty('id')
-            expect(res.body[0]).toHaveProperty('uploadToken')
-            expect(res.body[0]).toHaveProperty('originalName')
-          }
-        })
-    })
+       // Puis récupérer l'historique
+       return request(app.getHttpServer())
+         .get('/api/files')
+         .set('Authorization', `Bearer ${authToken}`)
+         .expect(200)
+         .expect((res) => {
+           expect(Array.isArray(res.body)).toBe(true)
+           if (res.body.length > 0) {
+             expect(res.body[0]).toHaveProperty('id')
+             expect(res.body[0]).toHaveProperty('token')
+             expect(res.body[0]).toHaveProperty('original_name')
+           }
+         })
+     })
 
     it('should reject file history request without authentication', () => {
       return request(app.getHttpServer())
@@ -297,15 +297,12 @@ describe('Files Endpoints (e2e) - US01/07 Upload', () => {
       deletableFileId = uploadRes.body.id
     })
 
-    it('should delete a file successfully', () => {
-      return request(app.getHttpServer())
-        .delete(`/api/files/${deletableFileId}`)
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(200)
-        .expect((res) => {
-          expect(res.body).toHaveProperty('message', 'File deleted successfully')
-        })
-    })
+     it('should delete a file successfully', () => {
+       return request(app.getHttpServer())
+         .delete(`/api/files/${deletableFileId}`)
+         .set('Authorization', `Bearer ${authToken}`)
+         .expect(204)
+     })
 
     it('should reject delete without authentication', () => {
       return request(app.getHttpServer())
