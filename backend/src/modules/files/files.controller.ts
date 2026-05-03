@@ -14,6 +14,7 @@ import {
   HttpCode,
   Response,
   Res,
+  Query,
 } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { memoryStorage } from 'multer'
@@ -24,6 +25,7 @@ import { UploadResponseDto } from './dto/upload-response.dto'
 import { DownloadMetadataDto } from './dto/download-metadata.dto'
 import { DownloadFileDto } from './dto/download-file.dto'
 import type { Request, Response as ExpressResponse } from 'express'
+import { FileListItemDto } from './dto/file-list-item.dto'
 
 interface MulterFile {
   fieldname: string
@@ -111,23 +113,22 @@ export class FilesController {
    *
    * GET /api/files
    *
-   * Réponse : Tableau de fichiers trié par date de création (DESC)
-   * - id : UUID du fichier
-   * - uploadToken : Token d'accès public
-   * - originalName : Nom original du fichier
-   * - size : Taille en bytes
-   * - mimetype : Type MIME (image/pdf, etc.)
-   * - createdAt : Date d'upload
-   * - expiresAt : Date d'expiration (ou null)
-   * - tags : Tableau de tags (ou vide)
+   * Query : include_expired=false (défaut — n'affiche que les fichiers valides)
    *
+   * Réponse : Tableau de FileListItem trié par created_at DESC
+   *
+   * @param includeExpired Inclure les fichiers expirés
    * @param req Request Express avec l'utilisateur authentifié
    * @returns Tableau de fichiers de l'utilisateur
    */
   @Get()
   @UseGuards(JwtGuard)
-  async findAll(@Req() req: any) {
-    return this.filesService.findAll(req.user.sub)
+  async findAll(
+    @Query('include_expired') includeExpired: string = 'false',
+    @Req() req: any,
+  ): Promise<FileListItemDto[]> {
+    const includeExpiredBool = includeExpired === 'true'
+    return this.filesService.findAll(req.user.sub, includeExpiredBool)
   }
 
   /**
@@ -229,15 +230,13 @@ export class FilesController {
    *
    * @param id UUID du fichier
    * @param req Request Express avec l'utilisateur authentifié
-   * @returns { message: "File deleted successfully" }
    * @throws NotFoundException si fichier inexistant
    * @throws ForbiddenException si utilisateur n'est pas propriétaire
    */
   @Delete(':id')
+  @HttpCode(204)
   @UseGuards(JwtGuard)
-  async remove(@Param('id', new ParseUuidPipe()) id: string, @Req() req: any) {
+  async remove(@Param('id', new ParseUuidPipe()) id: string, @Req() req: any): Promise<void> {
     await this.filesService.remove(id, req.user.sub)
-    return { message: 'File deleted successfully' }
   }
 }
-

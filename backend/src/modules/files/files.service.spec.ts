@@ -5,7 +5,7 @@ import * as bcrypt from 'bcryptjs'
 import { FilesService } from './files.service'
 import { File } from './entities/file.entity'
 import { LocalStorageService } from './storage/local-storage.service'
-import { BadRequestException, NotFoundException } from '@nestjs/common'
+import { BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common'
 
 jest.mock('bcryptjs')
 
@@ -167,12 +167,12 @@ describe('FilesService', () => {
       expect(filesRepository.delete).toHaveBeenCalledWith('123e4567-e89b-12d3-a456-426614174000')
     })
 
-    it('should throw BadRequestException if user is not the owner', async () => {
+    it('should throw ForbiddenException if user is not the owner', async () => {
       jest.spyOn(filesRepository, 'findOne').mockResolvedValue(mockFileEntity as any)
 
       await expect(
         service.remove('123e4567-e89b-12d3-a456-426614174000', 'different-user-id'),
-      ).rejects.toThrow(BadRequestException)
+      ).rejects.toThrow(ForbiddenException)
     })
 
     it('should throw NotFoundException if file not found', async () => {
@@ -188,6 +188,7 @@ describe('FilesService', () => {
     it('should return all files for a user', async () => {
       const mockQueryBuilder = {
         where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
         getMany: jest.fn().mockResolvedValue([mockFileEntity]),
       }
@@ -198,23 +199,48 @@ describe('FilesService', () => {
 
       expect(filesRepository.createQueryBuilder).toHaveBeenCalledWith('file')
       expect(mockQueryBuilder.where).toHaveBeenCalledWith('file.userId = :userId', { userId: 'user-123' })
-      expect(result).toEqual([mockFileEntity])
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('(file.expiresAt IS NULL OR file.expiresAt > :now)', { now: expect.any(Date) })
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('file.createdAt', 'DESC')
+      expect(result).toEqual([{
+        id: '123e4567-e89b-12d3-a456-426614174000',
+        token: '550e8400-e29b-41d4-a716-446655440000',
+        download_url: 'http://localhost:3000/d/550e8400-e29b-41d4-a716-446655440000',
+        original_name: 'test.pdf',
+        size_bytes: 1024,
+        mime_type: 'application/pdf',
+        expires_at: null,
+        has_password: false,
+        tags: [],
+      }])
     })
 
-    it('should return all files if no userId provided', async () => {
+    it('should include expired files when includeExpired is true', async () => {
       const mockQueryBuilder = {
         where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
         getMany: jest.fn().mockResolvedValue([mockFileEntity]),
       }
 
       jest.spyOn(filesRepository, 'createQueryBuilder').mockReturnValue(mockQueryBuilder as any)
 
-      const result = await service.findAll()
+      const result = await service.findAll('user-123', true)
 
       expect(filesRepository.createQueryBuilder).toHaveBeenCalledWith('file')
-      expect(mockQueryBuilder.where).not.toHaveBeenCalled()
-      expect(result).toEqual([mockFileEntity])
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith('file.userId = :userId', { userId: 'user-123' })
+      expect(mockQueryBuilder.andWhere).not.toHaveBeenCalled()
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('file.createdAt', 'DESC')
+      expect(result).toEqual([{
+        id: '123e4567-e89b-12d3-a456-426614174000',
+        token: '550e8400-e29b-41d4-a716-446655440000',
+        download_url: 'http://localhost:3000/d/550e8400-e29b-41d4-a716-446655440000',
+        original_name: 'test.pdf',
+        size_bytes: 1024,
+        mime_type: 'application/pdf',
+        expires_at: null,
+        has_password: false,
+        tags: [],
+      }])
     })
   })
 

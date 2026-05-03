@@ -45,6 +45,7 @@ import { CreateFileDto } from './dto/upload.dto'
 import { UploadResponseDto } from './dto/upload-response.dto'
 import { DownloadMetadataDto } from './dto/download-metadata.dto'
 import { LocalStorageService } from './storage/local-storage.service'
+import { FileListItemDto } from './dto/file-list-item.dto'
 
 /**
  * Interface représentant un fichier uploadé par Multer
@@ -158,20 +159,6 @@ export class FilesService {
       this.logger.error(`Failed to upload file: ${error.message}`)
       throw new BadRequestException(`Failed to save file: ${error.message}`)
     }
-  }
-
-  /**
-   * Récupère tous les fichiers d'un utilisateur
-   * US05: Historique - Accès réservé au propriétaire
-   * @param userId ID de l'utilisateur
-   * @returns Liste des fichiers de l'utilisateur
-   */
-  async findAll(userId?: string): Promise<File[]> {
-    const query = this.filesRepository.createQueryBuilder('file')
-    if (userId) {
-      query.where('file.userId = :userId', { userId })
-    }
-    return query.orderBy('file.createdAt', 'DESC').getMany()
   }
 
   /**
@@ -459,6 +446,25 @@ export class FilesService {
   }
 
   /**
+   * Mappe une entité File vers un DTO pour la liste des fichiers
+   * @param file Entité File de la base de données
+   * @returns FileListItemDto
+   */
+  private mapToFileListItemDto(file: File): FileListItemDto {
+    return {
+      id: file.id,
+      token: file.uploadToken,
+      download_url: `http://localhost:3000/d/${file.uploadToken}`,
+      original_name: file.originalName,
+      size_bytes: file.size,
+      mime_type: file.mimetype,
+      expires_at: file.expiresAt,
+      has_password: !!file.filePasswordHash,
+      tags: file.tags ? JSON.parse(file.tags) : [],
+    }
+  }
+
+  /**
    * Récupère les métadonnées d'un fichier par son uploadToken
    * US02: Les métadonnées du fichier sont visibles avant téléchargement
    * @param uploadToken Token d'accès unique du fichier
@@ -616,5 +622,24 @@ export class FilesService {
   isFileExpired(file: File): boolean {
     return file.expiresAt ? new Date() > file.expiresAt : false
   }
-}
 
+  /**
+   * Récupère tous les fichiers d'un utilisateur
+   * US05: Historique - Accès réservé au propriétaire
+   * @param userId ID de l'utilisateur
+   * @param includeExpired Inclure les fichiers expirés (défaut false)
+   * @returns Liste des fichiers de l'utilisateur sous forme de DTO
+   */
+  async findAll(userId: string, includeExpired: boolean = false): Promise<FileListItemDto[]> {
+    const query = this.filesRepository.createQueryBuilder('file')
+      .where('file.userId = :userId', { userId })
+      .orderBy('file.createdAt', 'DESC')
+
+    if (!includeExpired) {
+      query.andWhere('(file.expiresAt IS NULL OR file.expiresAt > :now)', { now: new Date() })
+    }
+
+    const files = await query.getMany()
+    return files.map(file => this.mapToFileListItemDto(file))
+  }
+}
