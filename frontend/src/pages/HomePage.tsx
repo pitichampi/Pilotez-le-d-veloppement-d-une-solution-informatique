@@ -38,6 +38,18 @@ export const HomePage = () => {
   /** Message de succès à afficher */
   const [success, setSuccess] = useState('')
 
+  /** Durée d'expiration sélectionnée (1-7 jours, optionnel) */
+  const [expirationDays, setExpirationDays] = useState<number | undefined>(7)
+
+  /** Mot de passe optionnel pour protéger le fichier */
+  const [filePassword, setFilePassword] = useState('')
+
+  /** Tags optionnels pour organiser le fichier */
+  const [fileTags, setFileTags] = useState('')
+
+  /** Affiche le formulaire d'options avancées */
+  const [showAdvanced, setShowAdvanced] = useState(false)
+
   /**
    * Charge la liste des fichiers au montage du composant
    */
@@ -63,50 +75,77 @@ export const HomePage = () => {
     }
   }
 
-  /**
-   * Gère l'upload d'un fichier (US01/07)
-   *
-   * Flux :
-   * 1. Récupérer le fichier sélectionné
-   * 2. Appeler l'API d'upload
-   * 3. Actualiser la liste des fichiers
-   *
-   * Validations côté serveur :
-   * - Taille max 1 Go
-   * - Extensions interdites : .exe, .bat, .sh, .msi, .cmd, .ps1
-   * - Type MIME valide
-   *
-   * @param e Change event du champ input file
-   */
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+   /**
+    * Gère l'upload d'un fichier (US01/07)
+    *
+    * Flux :
+    * 1. Récupérer le fichier sélectionné
+    * 2. Valider les options avancées
+    * 3. Appeler l'API d'upload avec paramètres
+    * 4. Actualiser la liste des fichiers
+    *
+    * Options :
+    * - expirationDays : 1-7 jours (défaut 7)
+    * - filePassword : min 6 caractères (optionnel)
+    * - fileTags : tags séparés par des virgules (optionnel)
+    *
+    * Validations côté serveur :
+    * - Taille max 1 Go
+    * - Extensions interdites : .exe, .bat, .sh, .msi, .cmd, .ps1
+    * - Type MIME valide
+    *
+    * @param e Change event du champ input file
+    */
+   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+     const file = e.target.files?.[0]
+     if (!file) return
 
-    setIsUploading(true)
-    setError('')
-    setSuccess('')
+     setIsUploading(true)
+     setError('')
+     setSuccess('')
 
-    try {
-      // Uploader le fichier (US01/07)
-      await filesApi.upload(file)
+      try {
+       // Parser les tags séparés par des virgules
+       const tags = fileTags
+         ? fileTags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
+         : undefined
 
-      // Afficher un message de succès
-      setSuccess(`Fichier "${file.name}" uploadé avec succès !`)
+       // Valider le mot de passe (min 6 chars si fourni)
+       if (filePassword && filePassword.length < 6) {
+         setError('Le mot de passe doit faire au moins 6 caractères')
+         setIsUploading(false)
+         return
+       }
 
-      // Actualiser la liste
-      await loadFiles()
+       // Uploader le fichier avec les paramètres optionnels (US01/07/09/10)
+       await filesApi.upload(
+         file,
+         expirationDays,
+         filePassword || undefined,
+         tags
+       )
 
-      // Réinitialiser l'input
-      e.target.value = ''
+       // Afficher un message de succès
+       setSuccess(`Fichier "${file.name}" uploadé avec succès !`)
 
-      // Masquer le message après 3 secondes
-      setTimeout(() => setSuccess(''), 3000)
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Erreur lors de l\'upload')
-    } finally {
-      setIsUploading(false)
-    }
-  }
+       // Réinitialiser les champs
+       e.target.value = ''
+       setFilePassword('')
+       setFileTags('')
+       setExpirationDays(7)
+       setShowAdvanced(false)
+
+       // Actualiser la liste
+       await loadFiles()
+
+       // Masquer le message après 3 secondes
+       setTimeout(() => setSuccess(''), 3000)
+     } catch (err: any) {
+       setError(err.response?.data?.message || err.message || 'Erreur lors de l\'upload')
+     } finally {
+       setIsUploading(false)
+     }
+   }
 
   /**
    * Formate une taille en bytes en KB/MB/GB
@@ -158,42 +197,108 @@ export const HomePage = () => {
         </Alert>
       )}
 
-      {/* Section Upload (US01/07) */}
-      <Card className="p-8">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="inline-flex items-center justify-center w-10 h-10 bg-orange-100 rounded-lg">
-            <Upload className="h-6 w-6 text-orange-600" />
-          </div>
-          <h2 className="text-xl font-semibold text-gray-900">Uploader un fichier</h2>
-        </div>
+       {/* Section Upload (US01/07) */}
+       <Card className="p-8">
+         <div className="flex items-center gap-3 mb-6">
+           <div className="inline-flex items-center justify-center w-10 h-10 bg-orange-100 rounded-lg">
+             <Upload className="h-6 w-6 text-orange-600" />
+           </div>
+           <h2 className="text-xl font-semibold text-gray-900">Uploader un fichier</h2>
+         </div>
 
-        <div className="border-2 border-dashed border-orange-200 rounded-lg p-8 text-center hover:border-orange-300 transition-colors">
-          <input
-            id="file-upload"
-            type="file"
-            onChange={handleFileUpload}
-            disabled={isUploading}
-            className="hidden"
-          />
-          <label
-            htmlFor="file-upload"
-            className="cursor-pointer block"
-          >
-            {isUploading ? (
-              <>
-                <Loader size="lg" className="mx-auto mb-3" />
-                <p className="text-gray-600 font-medium">Upload en cours...</p>
-              </>
-            ) : (
-              <>
-                <Upload className="h-12 w-12 text-orange-500 mx-auto mb-3" />
-                <p className="text-gray-900 font-medium mb-1">Déposez votre fichier ici ou cliquez pour sélectionner</p>
-                <p className="text-sm text-gray-500">Taille maximale : 1 Go. Extensions interdites : .exe, .bat, .sh, .msi, .cmd, .ps1</p>
-              </>
-            )}
-          </label>
-        </div>
-      </Card>
+         <div className="border-2 border-dashed border-orange-200 rounded-lg p-8 text-center hover:border-orange-300 transition-colors">
+           <input
+             id="file-upload"
+             type="file"
+             onChange={handleFileUpload}
+             disabled={isUploading}
+             className="hidden"
+           />
+           <label
+             htmlFor="file-upload"
+             className="cursor-pointer block"
+           >
+             {isUploading ? (
+               <>
+                 <Loader size="lg" className="mx-auto mb-3" />
+                 <p className="text-gray-600 font-medium">Upload en cours...</p>
+               </>
+             ) : (
+               <>
+                 <Upload className="h-12 w-12 text-orange-500 mx-auto mb-3" />
+                 <p className="text-gray-900 font-medium mb-1">Déposez votre fichier ici ou cliquez pour sélectionner</p>
+                 <p className="text-sm text-gray-500">Taille maximale : 1 Go. Extensions interdites : .exe, .bat, .sh, .msi, .cmd, .ps1</p>
+               </>
+             )}
+           </label>
+         </div>
+
+         {/* Options avancées (US09/10) */}
+         <div className="mt-6 pt-6 border-t border-gray-200">
+           <button
+             onClick={() => setShowAdvanced(!showAdvanced)}
+             className="text-sm text-orange-600 hover:text-orange-700 font-medium mb-4"
+           >
+             {showAdvanced ? '▼' : '▶'} Options avancées (optionnel)
+           </button>
+
+           {showAdvanced && (
+             <div className="space-y-4">
+               {/* Expiration du lien (US10) */}
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                   Expiration du lien (jours) - Défaut : 7 jours
+                 </label>
+                 <div className="flex gap-2">
+                   {[1, 2, 3, 4, 5, 6, 7].map(days => (
+                     <button
+                       key={days}
+                       onClick={() => setExpirationDays(days)}
+                       className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
+                         expirationDays === days
+                           ? 'bg-orange-600 text-white'
+                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                       }`}
+                     >
+                       {days}j
+                     </button>
+                   ))}
+                 </div>
+               </div>
+
+               {/* Mot de passe optionnel (US09) */}
+               <div>
+                 <label htmlFor="file-password" className="block text-sm font-medium text-gray-700 mb-2">
+                   Mot de passe (optionnel, min 6 caractères)
+                 </label>
+                 <input
+                   id="file-password"
+                   type="password"
+                   value={filePassword}
+                   onChange={e => setFilePassword(e.target.value)}
+                   placeholder="Laissez vide pour un fichier public"
+                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500"
+                 />
+               </div>
+
+               {/* Tags optionnels (US08) */}
+               <div>
+                 <label htmlFor="file-tags" className="block text-sm font-medium text-gray-700 mb-2">
+                   Tags (optionnel, séparés par des virgules, max 30 chars/tag)
+                 </label>
+                 <input
+                   id="file-tags"
+                   type="text"
+                   value={fileTags}
+                   onChange={e => setFileTags(e.target.value)}
+                   placeholder="Ex: projet, confidentiel, 2025-Q1"
+                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500"
+                 />
+               </div>
+             </div>
+           )}
+         </div>
+       </Card>
 
       {/* Section Historique (US05) */}
       <Card className="p-8">
@@ -216,67 +321,83 @@ export const HomePage = () => {
             <p className="text-sm text-gray-500 mt-2">Commencez par uploader votre premier fichier ci-dessus</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {files.map((file: any) => (
-              <div
-                key={file.id}
-                className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
-              >
-                {/* Info du fichier */}
-                <div className="flex-1 mb-4 sm:mb-0">
-                  <h3 className="font-medium text-gray-900 mb-1">{file.name}</h3>
-                  <div className="flex flex-col sm:flex-row gap-3 text-sm text-gray-600">
-                    <span className="flex items-center gap-1">
-                      <FileText className="h-4 w-4" />
-                      {formatFileSize(file.size)}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      {formatDate(file.createdAt)}
-                    </span>
-                  </div>
-                </div>
+           <div className="space-y-3">
+             {files.map((file: any) => (
+               <div
+                 key={file.id}
+                 className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
+               >
+                 {/* Info du fichier */}
+                 <div className="flex-1 mb-4 sm:mb-0">
+                   <h3 className="font-medium text-gray-900 mb-1">{file.original_name}</h3>
+                   <div className="flex flex-col sm:flex-row gap-3 text-sm text-gray-600">
+                     <span className="flex items-center gap-1">
+                       <FileText className="h-4 w-4" />
+                       {formatFileSize(file.size_bytes)}
+                     </span>
+                     {file.expires_at && (
+                       <span className="flex items-center gap-1">
+                         <Calendar className="h-4 w-4" />
+                         Expire le {formatDate(file.expires_at)}
+                       </span>
+                     )}
+                     {file.has_password && (
+                       <span className="flex items-center gap-1 text-orange-600 font-medium">
+                         🔒 Protégé par mot de passe
+                       </span>
+                     )}
+                     {file.tags && file.tags.length > 0 && (
+                       <div className="flex gap-1 flex-wrap">
+                         {file.tags.map((tag: string) => (
+                           <span key={tag} className="px-2 py-0.5 bg-orange-100 text-orange-700 rounded text-xs font-medium">
+                             {tag}
+                           </span>
+                         ))}
+                       </div>
+                     )}
+                   </div>
+                 </div>
 
-                {/* Actions */}
-                <div className="flex gap-2 w-full sm:w-auto">
-                  {/* Bouton télécharger */}
-                  <Button
-                    onClick={() => filesApi.download(file.id)}
-                    variant="outline"
-                    size="sm"
-                    title="Télécharger ce fichier"
-                    className="flex-1 sm:flex-none"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Télécharger
-                  </Button>
+                 {/* Actions */}
+                 <div className="flex gap-2 w-full sm:w-auto">
+                   {/* Bouton télécharger */}
+                   <Button
+                     onClick={() => filesApi.download(file.id)}
+                     variant="outline"
+                     size="sm"
+                     title="Télécharger ce fichier"
+                     className="flex-1 sm:flex-none"
+                   >
+                     <Download className="h-4 w-4 mr-2" />
+                     Télécharger
+                   </Button>
 
-                  {/* Bouton supprimer (US06) */}
-                  <Button
-                    onClick={async () => {
-                      if (confirm('Êtes-vous sûr de vouloir supprimer ce fichier ? Cette action est irréversible.')) {
-                        try {
-                          await filesApi.delete(file.id)
-                          setSuccess('Fichier supprimé avec succès')
-                          await loadFiles()
-                          setTimeout(() => setSuccess(''), 3000)
-                        } catch (err: any) {
-                          setError(err.response?.data?.message || 'Erreur de suppression')
-                        }
-                      }
-                    }}
-                    variant="outline"
-                    size="sm"
-                    title="Supprimer ce fichier (irréversible)"
-                    className="flex-1 sm:flex-none text-red-600 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Supprimer
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+                   {/* Bouton supprimer (US06) */}
+                   <Button
+                     onClick={async () => {
+                       if (confirm('Êtes-vous sûr de vouloir supprimer ce fichier ? Cette action est irréversible.')) {
+                         try {
+                           await filesApi.delete(file.id)
+                           setSuccess('Fichier supprimé avec succès')
+                           await loadFiles()
+                           setTimeout(() => setSuccess(''), 3000)
+                         } catch (err: any) {
+                           setError(err.response?.data?.message || 'Erreur de suppression')
+                         }
+                       }
+                     }}
+                     variant="outline"
+                     size="sm"
+                     title="Supprimer ce fichier (irréversible)"
+                     className="flex-1 sm:flex-none text-red-600 hover:text-red-700 hover:bg-red-50"
+                   >
+                     <Trash2 className="h-4 w-4 mr-2" />
+                     Supprimer
+                   </Button>
+                 </div>
+               </div>
+             ))}
+           </div>
         )}
       </Card>
     </div>

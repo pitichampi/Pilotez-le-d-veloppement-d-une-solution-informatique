@@ -112,29 +112,43 @@ export const filesApi = {
    */
   getAll: () => api.get('/files'),
 
-  /**
-   * Uploader un fichier (US01/07)
-   * Endpoint protégé JWT
-   *
-   * Contraintes :
-   * - Taille max 1 Go
-   * - Extensions interdites : .exe, .bat, .sh, .msi, .cmd, .ps1
-   * - Type MIME validé côté serveur
-   * - Tags optionnels (max 30 chars par tag)
-   * - Mot de passe optionnel (min 6 chars, hashé Bcrypt)
-   *
-   * @param file Fichier à uploader
-   * @returns Réponse avec token d'accès public et URL de partage
-   */
-  upload: (file: File) => {
-    const formData = new FormData()
-    formData.append('file', file)
-    return api.post('/files/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    })
-  },
+   /**
+    * Uploader un fichier (US01/07)
+    * Endpoint protégé JWT
+    *
+    * Contraintes :
+    * - Taille max 1 Go
+    * - Extensions interdites : .exe, .bat, .sh, .msi, .cmd, .ps1
+    * - Type MIME validé côté serveur
+    * - Tags optionnels (max 30 chars par tag)
+    * - Mot de passe optionnel (min 6 chars, hashé Bcrypt)
+    * - Expiration optionnelle (1-7 jours, défaut 7)
+    *
+    * @param file Fichier à uploader
+    * @param expirationDays Durée de vie du lien en jours (1-7, optionnel)
+    * @param password Mot de passe de protection optionnel (min 6 chars)
+    * @param tags Tags optionnels pour organiser le fichier
+    * @returns Réponse avec token d'accès public et URL de partage
+    */
+   upload: (file: File, expirationDays?: number, password?: string, tags?: string[]) => {
+     const formData = new FormData()
+     formData.append('file', file)
+     if (expirationDays) {
+       formData.append('expirationDays', String(expirationDays))
+     }
+     if (password) {
+       formData.append('filePassword', password)
+     }
+     if (tags && tags.length > 0) {
+       // Envoyer les tags comme JSON stringifiés pour la compatibilité avec NestJS/class-transformer
+       formData.append('tags', JSON.stringify(tags))
+     }
+     return api.post('/files/upload', formData, {
+       headers: {
+         'Content-Type': 'multipart/form-data',
+       },
+     })
+   },
 
   /**
    * Supprime un fichier (US06)
