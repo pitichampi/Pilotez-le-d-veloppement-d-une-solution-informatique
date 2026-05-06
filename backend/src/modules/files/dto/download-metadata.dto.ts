@@ -64,14 +64,14 @@ export class DownloadMetadataDto {
    */
   expiresAt?: Date
 
-  /**
-   * Indicateur : Le fichier est-il protégé par mot de passe ?
-   * - true : Afficher un formulaire de mot de passe au client
-   * - false : Permettre le téléchargement directement
-   *
-   * Sécurité : Le mot de passe n'est JAMAIS retourné (pas même hashé)
-   * Validation du mot de passe : Côté serveur uniquement (POST /download)
-   */
-  isPasswordProtected: boolean
+   /**
+    * Indicateur : Le fichier est-il protégé par mot de passe ?
+    * - true : Afficher un formulaire de mot de passe au client
+    * - false : Permettre le téléchargement directement
+    *
+    * Sécurité : Le mot de passe n'est JAMAIS retourné (pas même hashé)
+    * Validation du mot de passe : Côté serveur uniquement (POST /download)
+    */
+   has_password: boolean
 }
 

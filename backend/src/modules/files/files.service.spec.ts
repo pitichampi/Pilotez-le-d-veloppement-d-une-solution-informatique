@@ -284,7 +284,7 @@ describe('FilesService', () => {
         expect(result).toHaveProperty('originalName')
         expect(result).toHaveProperty('size')
         expect(result).toHaveProperty('mimetype')
-        expect(result).toHaveProperty('isPasswordProtected', false)
+        expect(result).toHaveProperty('has_password', false)
         expect(result).not.toHaveProperty('path')
       })
 
@@ -317,7 +317,7 @@ describe('FilesService', () => {
 
         const result = await service.getDownloadMetadata('550e8400-e29b-41d4-a716-446655440000')
 
-        expect(result.isPasswordProtected).toBe(true)
+        expect(result.has_password).toBe(true)
       })
     })
 

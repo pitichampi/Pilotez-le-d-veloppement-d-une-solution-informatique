@@ -24,6 +24,7 @@ import { ParseUuidPipe } from '@common/pipes/parse-uuid.pipe'
 import { UploadResponseDto } from './dto/upload-response.dto'
 import { DownloadMetadataDto } from './dto/download-metadata.dto'
 import { DownloadFileDto } from './dto/download-file.dto'
+import { CreateFileDto } from './dto/upload.dto'
 import type { Request, Response as ExpressResponse } from 'express'
 import { FileListItemDto } from './dto/file-list-item.dto'
 
@@ -96,6 +97,7 @@ export class FilesController {
   async upload(
     @UploadedFile() file: MulterFile,
     @Req() req: Request & { user: any },
+    @Body() createFileDto: CreateFileDto,
   ): Promise<UploadResponseDto> {
     if (!file) {
       throw new BadRequestException('No file uploaded')
@@ -104,7 +106,7 @@ export class FilesController {
     // Validation du fichier (taille, extension, type MIME)
     this.filesService.validateFile(file)
 
-    return this.filesService.create(file, req.user.sub, undefined)
+    return this.filesService.createWithPassword(file, req.user.sub, createFileDto)
   }
 
   /**
