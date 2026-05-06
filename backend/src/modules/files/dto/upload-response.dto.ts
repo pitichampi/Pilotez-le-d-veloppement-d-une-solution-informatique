@@ -7,6 +7,9 @@
  * 1. Récupérer uploadToken → Générer lien public
  * 2. Afficher originalName, size, createdAt dans l'historique
  * 3. Montrer expiresAt pour informer l'utilisateur
+ *
+ * @author DataShare Team
+ * @version 1.0.0
  */
 export class UploadResponseDto {
   /**
@@ -22,6 +25,13 @@ export class UploadResponseDto {
    * Téléchargement : POST /api/files/share/{uploadToken}/download
    */
   uploadToken: string
+
+  /**
+   * Lien de téléchargement public complet
+   * Format : http://localhost:3000/d/{uploadToken}
+   * Peut être partagé sans authentification
+   */
+  download_url?: string
 
   /**
    * Nom interne du fichier (UUID-originale.pdf)
@@ -57,12 +67,20 @@ export class UploadResponseDto {
   createdAt: Date
 
   /**
-   * Date d'expiration du lien
+   * Date d'expiration du lien (US10)
    * Optional : null si aucune expiration
    * Format ISO 8601 UTC
    * Valeurs possibles : now + 1 à 7 jours
+   * Purge automatique via Cron quotidienne à minuit UTC
    */
   expiresAt?: Date
+
+  /**
+   * Indicateur : fichier protégé par mot de passe (US09)
+   * true si filePassword fourni lors de l'upload
+   * false sinon
+   */
+  has_password?: boolean
 
   /**
    * Tags optionnels pour organiser les fichiers

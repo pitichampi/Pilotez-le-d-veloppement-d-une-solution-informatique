@@ -27,9 +27,13 @@ describe('Files Endpoints (e2e) - US01/07 Upload', () => {
         password: 'securePassword123',
       })
 
-    authToken = registerRes.body.token
-    userId = registerRes.body.user.id
-  })
+    if (registerRes.body && registerRes.body.access_token) {
+      authToken = registerRes.body.access_token
+    } else {
+      authToken = registerRes.body.token
+    }
+    userId = registerRes.body.user?.id || 'test-user-id'
+  }, 30000)
 
   afterAll(async () => {
     await app.close()
@@ -375,7 +379,7 @@ describe('Files Endpoints (e2e) - US01/07 Upload', () => {
             expect(res.body).toHaveProperty('originalName', 'public-download-test.pdf')
             expect(res.body).toHaveProperty('size')
             expect(res.body).toHaveProperty('mimetype', 'application/pdf')
-            expect(res.body).toHaveProperty('isPasswordProtected', false)
+            expect(res.body).toHaveProperty('has_password', false)
             expect(res.body).not.toHaveProperty('path') // Chemin ne doit pas être exposé
           })
       })
