@@ -144,7 +144,8 @@ export class FilesService {
         path: savedPath,
         storageType: 'local',
         userId,
-        tags: createFileDto?.tags ? JSON.stringify(createFileDto.tags) : null,
+        // Deduplicate tags if present
+        tags: createFileDto?.tags ? JSON.stringify(Array.from(new Set(createFileDto.tags))) : null,
         filePasswordHash: null, // À implémenter avec Bcrypt en US09
         expiresAt: this.calculateExpirationDate(createFileDto?.expirationDays),
       })
@@ -435,13 +436,15 @@ export class FilesService {
     return {
       id: file.id,
       uploadToken: file.uploadToken,
+      download_url: `http://localhost:3000/d/${file.uploadToken}`,
       name: file.name,
       originalName: file.originalName,
       size: file.size,
       mimetype: file.mimetype,
       createdAt: file.createdAt,
       expiresAt: file.expiresAt,
-      tags: file.tags ? JSON.parse(file.tags) : undefined,
+      has_password: !!file.filePasswordHash,
+      tags: file.tags ? JSON.parse(file.tags) : [],
     }
   }
 
@@ -492,7 +495,7 @@ export class FilesService {
       mimetype: file.mimetype,
       createdAt: file.createdAt,
       expiresAt: file.expiresAt,
-      isPasswordProtected: !!file.filePasswordHash,
+      has_password: !!file.filePasswordHash,
     }
   }
 
@@ -571,20 +574,21 @@ export class FilesService {
         filePasswordHash = await bcrypt.hash(createFileDto.filePassword, 10)
       }
 
-      // Créer l'entité fichier
-      const file = this.filesRepository.create({
-        uploadToken,
-        name: filename,
-        originalName: fileData.originalname,
-        mimetype: fileData.mimetype,
-        size: fileData.size,
-        path: savedPath,
-        storageType: 'local',
-        userId,
-        tags: createFileDto?.tags ? JSON.stringify(createFileDto.tags) : null,
-        filePasswordHash,
-        expiresAt: this.calculateExpirationDate(createFileDto?.expirationDays),
-      })
+       // Créer l'entité fichier
+       const file = this.filesRepository.create({
+         uploadToken,
+         name: filename,
+         originalName: fileData.originalname,
+         mimetype: fileData.mimetype,
+         size: fileData.size,
+         path: savedPath,
+         storageType: 'local',
+         userId,
+         // Deduplicate tags if present
+         tags: createFileDto?.tags ? JSON.stringify(Array.from(new Set(createFileDto.tags))) : null,
+         filePasswordHash,
+         expiresAt: this.calculateExpirationDate(createFileDto?.expirationDays),
+       })
 
       const savedFile = await this.filesRepository.save(file)
 
@@ -641,5 +645,31 @@ export class FilesService {
 
     const files = await query.getMany()
     return files.map(file => this.mapToFileListItemDto(file))
+  }
+
+  /**
+   * Déduplique et valide les tags (US08)
+   * - Supprime les doublons
+   * - Convertit en minuscules pour cohérence
+   * - Vérifie que chaque tag ne dépasse pas 30 caractères
+   * @param tags Tableau de tags bruts
+   * @returns Tableau de tags uniques et validés
+   */
+  private deduplicateTags(tags?: string[]): string[] {
+    if (!tags || tags.length === 0) return []
+
+    // Déduplicater (sensible à la casse pour préserver l'intention utilisateur)
+    const uniqueTags = Array.from(new Set(tags))
+
+    // Valider que chaque tag ne dépasse pas 30 caractères
+    const validTags = uniqueTags.filter(tag => {
+      if (tag.length > 30) {
+        this.logger.warn(`Tag exceeds 30 characters: "${tag.substring(0, 30)}...". Filtered out.`)
+        return false
+      }
+      return true
+    })
+
+    return validTags
   }
 }

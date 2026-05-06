@@ -1,4 +1,5 @@
-import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator'
+import { IsOptional, IsString, MaxLength, MinLength, IsNumber, Min, Max, IsInt } from 'class-validator'
+import { Type, Transform } from 'class-transformer'
 
 /**
  * DTO pour la création/upload d'un fichier (US01/07)
@@ -11,7 +12,10 @@ import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator'
  * Validation automatique effectuée :
  * - tags[] : Chaque tag max 30 chars
  * - filePassword : Min 6 chars si fourni (hachage bcrypt au serveur)
- * - expirationDays : Plage 1-7 validée en service
+ * - expirationDays : Plage 1-7 validée avec @Min(1) @Max(7)
+ *
+ * @author DataShare Team
+ * @version 1.0.0
  */
 export class CreateFileDto {
   /**
@@ -21,10 +25,23 @@ export class CreateFileDto {
    * Dédoublonnés automatiquement (suppression des doublons)
    *
    * Exemple : ["projet", "confidential", "2025-Q1"]
+   *
+   * Le transformer parse les tags s'ils arrivent comme JSON string (multipart/form-data)
+   * ou comme un array direct (application/json)
    */
   @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value)
+      } catch {
+        return value
+      }
+    }
+    return value
+  })
   @IsString({ each: true })
-  @MaxLength(30, { each: true })
+  @MaxLength(30, { each: true, message: 'Each tag must be at most 30 characters' })
   tags?: string[]
 
   /**
@@ -46,19 +63,32 @@ export class CreateFileDto {
   filePassword?: string
 
   /**
-   * Durée de vie du fichier en jours (US10 - Expiration)
-   * Optionnel : défaut 7 jours si non fourni
+   * Durée de vie du fichier en jours (US10 - Expiration & Purge automatique)
+   * Optionnel : défaut null (pas d'expiration) si non fourni
    * Plage valide : 1-7 jours
    *
    * Logique :
    * - 1 jour : Lien actif 24h après upload
-   * - 7 jours : Lien valide une semaine (défaut)
-   * - Purge automatique : Tâche Cron quotidienne @midnight
+   * - 7 jours : Lien valide une semaine (défaut recommandé)
+   * - Purge automatique : Tâche Cron quotidienne à minuit UTC (@Cron)
    * - Erreur 410 : Retourné si fichier expiré lors d'un accès
+   *
+   * Validation :
+   * - @IsOptional : Non requis
+   * @Type(() => Number) : Convertit string → number (multipart form data)
+   * - @IsNumber : Doit être un nombre
+   * - @IsInt : Doit être un entier
+   * - @Min(1) : Minimum 1 jour
+   * - @Max(7) : Maximum 7 jours
    *
    * Exemple : expirationDays=3 → Expire dans 3 jours
    */
   @IsOptional()
+  @Type(() => Number)
+  @IsNumber({}, { message: 'expirationDays must be a number' })
+  @IsInt({ message: 'expirationDays must be an integer' })
+  @Min(1, { message: 'expirationDays must be at least 1 day' })
+  @Max(7, { message: 'expirationDays must be at most 7 days' })
   expirationDays?: number
 }
 
