@@ -1,0 +1,754 @@
+openapi: 3.0.3
+info:
+  title: DataShare API
+  description: API de partage de fichiers sécurisé avec liens temporaires
+  version: 1.0.0
+servers:
+  - url: http://localhost:3001/api
+    description: Serveur local de développement
+tags:
+  - name: auth
+    description: Authentification et gestion du compte utilisateur
+  - name: users
+    description: Administration et gestion des utilisateurs
+  - name: files
+    description: Gestion des fichiers, upload, téléchargement et historique
+components:
+  securitySchemes:
+    JWT-auth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: Validation failed
+        error:
+          type: string
+          example: Bad Request
+    LoginDto:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        password:
+          type: string
+          minLength: 8
+          example: securePassword123
+    RegisterDto:
+      type: object
+      required:
+        - email
+        - username
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: alice@example.com
+        username:
+          type: string
+          minLength: 3
+          example: alice
+        password:
+          type: string
+          minLength: 8
+          example: SecurePass123!
+    AuthResponseDto:
+      type: object
+      properties:
+        token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+              example: 123e4567-e89b-12d3-a456-426614174000
+            email:
+              type: string
+              format: email
+              example: alice@example.com
+            username:
+              type: string
+              example: alice
+            createdAt:
+              type: string
+              format: date-time
+              example: 2025-04-29T10:00:00Z
+    UserResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 123e4567-e89b-12d3-a456-426614174000
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        username:
+          type: string
+          example: username
+        role:
+          type: string
+          example: user
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-04-29T10:00:00Z
+    CreateFileDto:
+      type: object
+      properties:
+        tags:
+          type: array
+          items:
+            type: string
+          example:
+            - projet
+            - confidential
+        filePassword:
+          type: string
+          minLength: 8
+          example: SecurePass123
+        expirationDays:
+          type: integer
+          minimum: 1
+          maximum: 7
+          example: 7
+    UploadResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 123e4567-e89b-12d3-a456-426614174000
+        uploadToken:
+          type: string
+          example: 550e8400-e29b-41d4-a716-446655440000
+        download_url:
+          type: string
+          example: http://localhost:3001/api/files/550e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          example: 123e4567-document.pdf
+        originalName:
+          type: string
+          example: rapport-Q1.pdf
+        size:
+          type: integer
+          example: 204800
+        mimetype:
+          type: string
+          example: application/pdf
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-04-28T10:30:00Z
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: 2025-05-05T10:30:00Z
+        has_password:
+          type: boolean
+          example: false
+        tags:
+          type: array
+          items:
+            type: string
+          example:
+            - projet
+            - confidential
+    FileListItemDto:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 123e4567-e89b-12d3-a456-426614174000
+        token:
+          type: string
+          example: 550e8400-e29b-41d4-a716-446655440000
+        download_url:
+          type: string
+          example: http://localhost:3001/api/files/550e8400-e29b-41d4-a716-446655440000
+        original_name:
+          type: string
+          example: rapport-Q1.pdf
+        size_bytes:
+          type: integer
+          example: 204800
+        mime_type:
+          type: string
+          example: application/pdf
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: 2025-05-05T10:30:00Z
+        has_password:
+          type: boolean
+          example: false
+        tags:
+          type: array
+          items:
+            type: string
+          example:
+            - projet
+            - confidential
+    DownloadMetadataDto:
+      type: object
+      properties:
+        original_name:
+          type: string
+          example: rapport-financier-2025.pdf
+        size_bytes:
+          type: integer
+          example: 204800
+        mime_type:
+          type: string
+          example: application/pdf
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: 2025-05-05T10:30:00Z
+        has_password:
+          type: boolean
+          example: false
+    DownloadFileDto:
+      type: object
+      properties:
+        password:
+          type: string
+          minLength: 8
+          example: SecurePass123
+      additionalProperties: false
+paths:
+  /auth/register:
+    post:
+      tags:
+        - auth
+      summary: Créer un compte utilisateur
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterDto'
+      responses:
+        '201':
+          description: Utilisateur créé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponseDto'
+        '409':
+          description: Email déjà utilisé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation échouée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/login:
+    post:
+      tags:
+        - auth
+      summary: Se connecter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginDto'
+      responses:
+        '200':
+          description: Connexion réussie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponseDto'
+        '401':
+          description: Identifiants invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation échouée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/me:
+    get:
+      tags:
+        - auth
+      summary: Récupérer le profil utilisateur connecté
+      security:
+        - JWT-auth: []
+      responses:
+        '200':
+          description: Profil utilisateur
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: 123e4567-e89b-12d3-a456-426614174000
+                  email:
+                    type: string
+                    example: alice@example.com
+        '401':
+          description: Token JWT manquant ou invalide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/logout:
+    post:
+      tags:
+        - auth
+      summary: Déconnexion stateless
+      responses:
+        '200':
+          description: Déconnexion réussie
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Logged out successfully
+  /users:
+    get:
+      tags:
+        - users
+      summary: Lister tous les utilisateurs
+      security:
+        - JWT-auth: []
+      responses:
+        '200':
+          description: Liste des utilisateurs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserResponseDto'
+        '401':
+          description: JWT manquant ou invalide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: UUID de l'utilisateur
+    get:
+      tags:
+        - users
+      summary: Récupérer un utilisateur par ID
+      security:
+        - JWT-auth: []
+      responses:
+        '200':
+          description: Utilisateur trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponseDto'
+        '401':
+          description: JWT manquant ou invalide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Utilisateur introuvable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags:
+        - users
+      summary: Mettre à jour un utilisateur partiellement
+      security:
+        - JWT-auth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: newemail@example.com
+                username:
+                  type: string
+                  example: new_username
+                password:
+                  type: string
+                  minLength: 8
+                  example: NewPassword123!
+      responses:
+        '200':
+          description: Utilisateur mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponseDto'
+        '400':
+          description: Validation échouée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: JWT manquant ou invalide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Utilisateur introuvable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - users
+      summary: Supprimer un utilisateur
+      security:
+        - JWT-auth: []
+      responses:
+        '200':
+          description: Suppression réussie
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: User deleted successfully
+        '401':
+          description: JWT manquant ou invalide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Utilisateur introuvable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /files/upload:
+    post:
+      tags:
+        - files
+      summary: Upload d'un fichier authentifié
+      security:
+        - JWT-auth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                tags:
+                  type: array
+                  items:
+                    type: string
+                filePassword:
+                  type: string
+                  minLength: 8
+                expirationDays:
+                  type: integer
+                  minimum: 1
+                  maximum: 7
+      responses:
+        '201':
+          description: Fichier uploadé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadResponseDto'
+        '400':
+          description: Requête invalide ou fichier non valide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: JWT manquant ou invalide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Upload anonyme interdit avec token JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /files/anonymous:
+    post:
+      tags:
+        - files
+      summary: Upload anonyme sans authentification
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                tags:
+                  type: array
+                  items:
+                    type: string
+                filePassword:
+                  type: string
+                  minLength: 8
+                expirationDays:
+                  type: integer
+                  minimum: 1
+                  maximum: 7
+      responses:
+        '201':
+          description: Fichier uploadé anonymement
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadResponseDto'
+        '400':
+          description: Requête invalide ou fichier non valide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Token présent dans la requête alors que l'upload doit être anonyme
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /files:
+    get:
+      tags:
+        - files
+      summary: Récupérer l'historique des fichiers de l'utilisateur
+      security:
+        - JWT-auth: []
+      parameters:
+        - in: query
+          name: include_expired
+          schema:
+            type: boolean
+          description: Inclure les fichiers expirés
+          required: false
+          example: false
+      responses:
+        '200':
+          description: Liste des fichiers de l'utilisateur
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FileListItemDto'
+        '401':
+          description: JWT manquant ou invalide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /files/{uploadToken}:
+    parameters:
+      - name: uploadToken
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Token d'accès public du fichier
+    get:
+      tags:
+        - files
+      summary: Récupérer les métadonnées du fichier avant téléchargement
+      responses:
+        '200':
+          description: Métadonnées du fichier public
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DownloadMetadataDto'
+        '404':
+          description: Fichier introuvable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '410':
+          description: Lien expiré
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /files/{uploadToken}/download:
+    put:
+      tags:
+        - files
+      summary: Télécharger le fichier public via token
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DownloadFileDto'
+      responses:
+        '200':
+          description: Flux binaire du fichier
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Requête invalide ou fichier expiré
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Mot de passe incorrect ou authentification requise
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Fichier introuvable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '410':
+          description: Lien expiré
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /files/{id}/download:
+    get:
+      tags:
+        - files
+      summary: Télécharger un fichier en tant que propriétaire
+      security:
+        - JWT-auth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: UUID du fichier
+      responses:
+        '200':
+          description: Flux binaire du fichier
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: JWT manquant ou invalide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Fichier introuvable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /files/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: UUID du fichier
+    delete:
+      tags:
+        - files
+      summary: Supprimer un fichier propriétaire
+      security:
+        - JWT-auth: []
+      responses:
+        '200':
+          description: Fichier supprimé avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: File deleted successfully
+        '401':
+          description: JWT manquant ou invalide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Fichier introuvable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
