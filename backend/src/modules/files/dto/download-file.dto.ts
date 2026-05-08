@@ -10,7 +10,7 @@ import { IsOptional, IsString, MinLength } from 'class-validator'
  *
  * Validation :
  * - password : Optionnel (requis seulement si fichier protégé)
- * - Min 6 caractères si fourni (idem que filePassword lors de l'upload)
+ * - Min 8 caractères si fourni (idem que filePassword lors de l'upload)
  */
 export class DownloadFileDto {
   /**
@@ -35,7 +35,7 @@ export class DownloadFileDto {
    */
   @IsOptional()
   @IsString()
-  @MinLength(6, { message: 'File password must be at least 6 characters' })
+  @MinLength(8, { message: 'File password must be at least 8 characters' })
   password?: string
 }
 
