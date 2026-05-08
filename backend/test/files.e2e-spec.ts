@@ -84,6 +84,20 @@ describe('Files Endpoints (e2e) - US01/07 Upload', () => {
         .expect(401)
     })
 
+    it('should upload a file anonymously without authentication', () => {
+      const pdfBuffer = Buffer.from('%PDF-1.4\n%anonymous', 'utf8')
+
+      return request(app.getHttpServer())
+        .post('/api/files/anonymous')
+        .attach('file', pdfBuffer, 'anonymous.pdf')
+        .expect(201)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('uploadToken')
+          expect(res.body).toHaveProperty('originalName', 'anonymous.pdf')
+          expect(res.body).toHaveProperty('has_password', false)
+        })
+    })
+
     it('should reject upload with invalid authentication token', () => {
       const pdfBuffer = Buffer.from('%PDF-1.4\n%test', 'utf8')
 

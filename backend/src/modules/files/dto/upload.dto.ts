@@ -11,7 +11,7 @@ import { Type, Transform } from 'class-transformer'
  *
  * Validation automatique effectuée :
  * - tags[] : Chaque tag max 30 chars
- * - filePassword : Min 6 chars si fourni (hachage bcrypt au serveur)
+ * - filePassword : Min 8 chars si fourni (hachage bcrypt au serveur)
  * - expirationDays : Plage 1-7 validée avec @Min(1) @Max(7)
  *
  * @author DataShare Team
@@ -47,7 +47,7 @@ export class CreateFileDto {
   /**
    * Mot de passe pour protéger le fichier (US09 - Sécurité)
    * Optionnel : Si vide, le fichier est public
-   * Min 6 caractères (validation côté serveur)
+   * Min 8 caractères (validation côté serveur)
    *
    * Processus :
    * 1. Reçu en clair du client via HTTPS
@@ -59,7 +59,7 @@ export class CreateFileDto {
    */
   @IsOptional()
   @IsString()
-  @MinLength(6, { message: 'File password must be at least 6 characters' })
+  @MinLength(8, { message: 'File password must be at least 8 characters' })
   filePassword?: string
 
   /**

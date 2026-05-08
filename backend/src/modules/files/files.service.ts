@@ -116,7 +116,7 @@ export class FilesService {
    */
   async create(
     fileData: MulterFile,
-    userId: string,
+    userId?: string,
     createFileDto?: CreateFileDto,
   ): Promise<UploadResponseDto> {
     if (!fileData) {
@@ -126,9 +126,9 @@ export class FilesService {
     // Générer un token UUID unique pour le fichier
     const uploadToken = randomUUID()
 
-    // Créer un chemin de stockage structuré: /uploads/{userId}/{uploadToken}-{originalname}
     const filename = `${uploadToken}-${fileData.originalname}`
-    const filepath = `${userId}/${filename}`
+    const storagePrefix = userId ? userId : 'anonymous'
+    const filepath = `${storagePrefix}/${filename}`
 
     try {
       // Sauvegarder le fichier dans le stockage
@@ -143,7 +143,7 @@ export class FilesService {
         size: fileData.size,
         path: savedPath,
         storageType: 'local',
-        userId,
+        userId: userId ?? null,
         // Deduplicate tags if present
         tags: createFileDto?.tags ? JSON.stringify(Array.from(new Set(createFileDto.tags))) : null,
         filePasswordHash: null, // À implémenter avec Bcrypt en US09
@@ -488,13 +488,10 @@ export class FilesService {
     }
 
     return {
-      id: file.id,
-      uploadToken: file.uploadToken,
-      originalName: file.originalName,
-      size: file.size,
-      mimetype: file.mimetype,
-      createdAt: file.createdAt,
-      expiresAt: file.expiresAt,
+      original_name: file.originalName,
+      size_bytes: file.size,
+      mime_type: file.mimetype,
+      expires_at: file.expiresAt,
       has_password: !!file.filePasswordHash,
     }
   }
@@ -550,7 +547,7 @@ export class FilesService {
    */
   async createWithPassword(
     fileData: MulterFile,
-    userId: string,
+    userId?: string,
     createFileDto?: CreateFileDto,
   ): Promise<UploadResponseDto> {
     if (!fileData) {
@@ -560,9 +557,9 @@ export class FilesService {
     // Générer un token UUID unique pour le fichier
     const uploadToken = randomUUID()
 
-    // Créer un chemin de stockage structuré
     const filename = `${uploadToken}-${fileData.originalname}`
-    const filepath = `${userId}/${filename}`
+    const storagePrefix = userId ? userId : 'anonymous'
+    const filepath = `${storagePrefix}/${filename}`
 
     try {
       // Sauvegarder le fichier dans le stockage
@@ -583,7 +580,7 @@ export class FilesService {
          size: fileData.size,
          path: savedPath,
          storageType: 'local',
-         userId,
+         userId: userId ?? null,
          // Deduplicate tags if present
          tags: createFileDto?.tags ? JSON.stringify(Array.from(new Set(createFileDto.tags))) : null,
          filePasswordHash,
@@ -599,6 +596,13 @@ export class FilesService {
       this.logger.error(`Failed to upload file: ${error.message}`)
       throw new BadRequestException(`Failed to save file: ${error.message}`)
     }
+  }
+
+  async createAnonymous(
+    fileData: MulterFile,
+    createFileDto?: CreateFileDto,
+  ): Promise<UploadResponseDto> {
+    return this.createWithPassword(fileData, undefined, createFileDto)
   }
 
   /**

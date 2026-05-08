@@ -32,12 +32,12 @@ export class File {
   @Column({ type: 'varchar', length: 50, nullable: true })
   storageType: string
 
-  @Column({ type: 'uuid' })
-  userId: string
+  @Column({ type: 'uuid', nullable: true })
+  userId?: string | null
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: 'userId' })
-  user: User
+  user?: User | null
 
   /**
    * Tags pour organiser les fichiers

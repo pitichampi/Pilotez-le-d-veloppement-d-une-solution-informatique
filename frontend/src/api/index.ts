@@ -121,12 +121,12 @@ export const filesApi = {
     * - Extensions interdites : .exe, .bat, .sh, .msi, .cmd, .ps1
     * - Type MIME validé côté serveur
     * - Tags optionnels (max 30 chars par tag)
-    * - Mot de passe optionnel (min 6 chars, hashé Bcrypt)
+    * - Mot de passe optionnel (min 8 chars, hashé Bcrypt)
     * - Expiration optionnelle (1-7 jours, défaut 7)
     *
     * @param file Fichier à uploader
     * @param expirationDays Durée de vie du lien en jours (1-7, optionnel)
-    * @param password Mot de passe de protection optionnel (min 6 chars)
+    * @param password Mot de passe de protection optionnel (min 8 chars)
     * @param tags Tags optionnels pour organiser le fichier
     * @returns Réponse avec token d'accès public et URL de partage
     */
@@ -149,6 +149,33 @@ export const filesApi = {
        },
      })
    },
+
+  /**
+   * Uploader un fichier de manière anonyme sans authentification
+   * Endpoint public (sans token JWT)
+   * @param file Fichier à uploader
+   * @param expirationDays Durée de vie du lien en jours (1-7, optionnel)
+   * @param password Mot de passe optionnel pour protéger le fichier
+   * @param tags Tags optionnels
+   */
+  uploadAnonymous: (file: File, expirationDays?: number, password?: string, tags?: string[]) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    if (expirationDays) {
+      formData.append('expirationDays', String(expirationDays))
+    }
+    if (password) {
+      formData.append('filePassword', password)
+    }
+    if (tags && tags.length > 0) {
+      formData.append('tags', JSON.stringify(tags))
+    }
+    return api.post('/files/anonymous', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+  },
 
   /**
    * Supprime un fichier (US06)
@@ -185,7 +212,7 @@ export const filesApi = {
    * @param token UUID du fichier (uploadToken)
    * @returns Métadonnées publiques
    */
-  getMetadata: (token: string) => api.get(`/files/share/${token}/metadata`),
+  getMetadata: (token: string) => api.get(`/files/${token}`),
 
   /**
    * Télécharge un fichier via lien public (US02)
@@ -200,7 +227,7 @@ export const filesApi = {
    * @param password Mot de passe du fichier (optionnel, requis si filePasswordHash présent)
    * @returns Stream binaire du fichier
    */
-  downloadPublic: (token: string, password?: string) => api.post(`/files/share/${token}/download`, { password }, {
+  downloadPublic: (token: string, password?: string) => api.put(`/files/${token}/download`, { password }, {
     responseType: 'blob',
   }),
 }

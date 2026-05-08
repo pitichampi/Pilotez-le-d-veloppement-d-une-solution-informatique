@@ -92,12 +92,12 @@ describe('FilesService - US08 & US09 (Unit Tests)', () => {
       expect(hashedPassword.length).toBeGreaterThan(plainPassword.length)
     })
 
-    it('should validate password length (min 6 characters)', () => {
-      const validPassword = '123456'
-      const invalidPassword = '12345'
+    it('should validate password length (min 8 characters)', () => {
+      const validPassword = '12345678'
+      const invalidPassword = '1234567'
 
-      expect(validPassword.length).toBeGreaterThanOrEqual(6)
-      expect(invalidPassword.length).toBeLessThan(6)
+      expect(validPassword.length).toBeGreaterThanOrEqual(8)
+      expect(invalidPassword.length).toBeLessThan(8)
     })
 
     it('should verify password with bcrypt.compare', async () => {
@@ -185,10 +185,10 @@ describe('FilesService - US08 & US09 (Unit Tests)', () => {
 
     it('should validate both tags and password in upload', () => {
       const tags = ['a'.repeat(30)] // Valid: exactly 30 chars
-      const password = '123456' // Valid: exactly 6 chars
+      const password = '12345678' // Valid: exactly 8 chars
 
       expect(tags[0].length).toBeLessThanOrEqual(30)
-      expect(password.length).toBeGreaterThanOrEqual(6)
+      expect(password.length).toBeGreaterThanOrEqual(8)
     })
   })
 

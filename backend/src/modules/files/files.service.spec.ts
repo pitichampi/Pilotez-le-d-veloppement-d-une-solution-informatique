@@ -279,8 +279,6 @@ describe('FilesService', () => {
 
         const result = await service.getDownloadMetadata('550e8400-e29b-41d4-a716-446655440000')
 
-        expect(result).toHaveProperty('id')
-        expect(result).toHaveProperty('uploadToken')
         expect(result).toHaveProperty('originalName')
         expect(result).toHaveProperty('size')
         expect(result).toHaveProperty('mimetype')

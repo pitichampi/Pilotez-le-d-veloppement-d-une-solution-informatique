@@ -66,24 +66,24 @@ describe('US09 - File Security & Password Protection (e2e)', () => {
       uploadToken = res.body.uploadToken
     })
 
-    it('should reject password less than 6 characters', () => {
+    it('should reject password less than 8 characters', () => {
       const pdfBuffer = Buffer.from('%PDF-1.4\n%test', 'utf8')
 
       return request(app.getHttpServer())
         .post('/api/files/upload')
         .set('Authorization', `Bearer ${authToken}`)
-        .field('filePassword', 'short')
+        .field('filePassword', 'short1')
         .attach('file', pdfBuffer, 'short-pass.pdf')
         .expect(400)
     })
 
-    it('should accept password with exactly 6 characters', () => {
+    it('should accept password with exactly 8 characters', () => {
       const pdfBuffer = Buffer.from('%PDF-1.4\n%test', 'utf8')
 
       return request(app.getHttpServer())
         .post('/api/files/upload')
         .set('Authorization', `Bearer ${authToken}`)
-        .field('filePassword', '123456')
+        .field('filePassword', '12345678')
         .attach('file', pdfBuffer, 'min-pass.pdf')
         .expect(201)
         .expect((res) => {

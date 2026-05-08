@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  Put,
   Get,
   Delete,
   Param,
@@ -9,6 +10,7 @@ import {
   UploadedFile,
   Req,
   BadRequestException,
+  ForbiddenException,
   StreamableFile,
   Body,
   HttpCode,
@@ -68,7 +70,7 @@ export class FilesController {
    * Champs du formulaire :
    * - file (requis) : Fichier binaire, max 1 Go, types interdits : .exe, .bat, .sh, .msi, .cmd, .ps1
    * - expirationDays (optionnel) : 1-7 jours (défaut 7)
-   * - password (optionnel) : Min 6 caractères pour protéger le fichier
+   * - password (optionnel) : Min 8 caractères pour protéger le fichier
    * - tags (optionnel) : Tableau de tags, max 30 chars par tag
    *
    * Processus :
@@ -109,6 +111,32 @@ export class FilesController {
     return this.filesService.createWithPassword(file, req.user.sub, createFileDto)
   }
 
+  @Post('anonymous')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: {
+        fileSize: 1024 * 1024 * 1024, // 1 GB max
+      },
+    }),
+  )
+  async uploadAnonymous(
+    @UploadedFile() file: MulterFile,
+    @Body() createFileDto: CreateFileDto,
+    @Req() req: Request,
+  ): Promise<UploadResponseDto> {
+    if (req.headers.authorization) {
+      throw new ForbiddenException('Anonymous uploads must be performed without an authentication token')
+    }
+
+    if (!file) {
+      throw new BadRequestException('No file uploaded')
+    }
+
+    this.filesService.validateFile(file)
+    return this.filesService.createAnonymous(file, createFileDto)
+  }
+
   /**
    * Récupère l'historique des fichiers de l'utilisateur (US05)
    * Endpoint protégé, retourne uniquement les fichiers de l'utilisateur authentifié
@@ -136,7 +164,7 @@ export class FilesController {
   /**
    * Récupère les métadonnées d'un fichier avant téléchargement (US02)
    * Endpoint PUBLIC - Pas d'authentification requise
-   * Accessible via lien de partage : /api/files/share/{uploadToken}/metadata
+   * Accessible via lien de partage : /api/files/{uploadToken}
    *
    * Les métadonnées permettent au client de :
    * - Afficher le nom et la taille du fichier
@@ -144,11 +172,11 @@ export class FilesController {
    * - Savoir si le fichier est protégé par mot de passe
    *
    * @param uploadToken Token d'accès unique du fichier (validé par ParseUuidPipe)
-   * @returns DownloadMetadataDto { originalName, size, mimetype, createdAt, expiresAt, isPasswordProtected }
+   * @returns DownloadMetadataDto { original_name, size_bytes, mime_type, expires_at, has_password }
    * @throws NotFoundException si le fichier n'existe pas
    * @throws BadRequestException si le fichier a expiré
    */
-  @Get('share/:uploadToken/metadata')
+  @Get(':uploadToken')
   async getDownloadMetadata(@Param('uploadToken', new ParseUuidPipe()) uploadToken: string): Promise<DownloadMetadataDto> {
     return this.filesService.getDownloadMetadata(uploadToken)
   }
@@ -158,7 +186,7 @@ export class FilesController {
    * Endpoint PUBLIC - Pas d'authentification requise
    * Méthode POST pour sécuriser le mot de passe (ne passe pas en URL)
    *
-   * POST /api/files/share/{uploadToken}/download
+   * POST /api/files/{uploadToken}/download
    *
    * Body (si fichier protégé par mot de passe) :
    * { "password": "motdepasse" }
@@ -181,7 +209,7 @@ export class FilesController {
    * @throws NotFoundException si fichier inexistant
    * @throws BadRequestException si fichier expiré ou mot de passe incorrect
    */
-  @Post('share/:uploadToken/download')
+  @Put(':uploadToken/download')
   @HttpCode(200)
   async downloadFile(
     @Param('uploadToken', new ParseUuidPipe()) uploadToken: string,
