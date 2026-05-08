@@ -29,7 +29,7 @@ interface CardProps {
 export function Card({ children, className }: CardProps) {
   return (
     <div className={cn(
-      "bg-white rounded-lg border border-gray-200 shadow-sm",
+      "bg-white rounded-xl border border-gray-200 shadow-md hover:shadow-lg transition-shadow duration-200",
       className
     )}>
       {children}

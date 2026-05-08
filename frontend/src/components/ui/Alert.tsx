@@ -34,11 +34,12 @@ interface AlertProps {
  */
 export function Alert({ children, variant = 'default', className }: AlertProps) {
   // Classes de couleur selon le variant
+  // Harmonisé avec design Figma : rouge pour erreurs, vert pour succès
   const variantClasses = {
-    default: "border-blue-200 bg-blue-50 text-blue-800",
-    destructive: "border-red-200 bg-red-50 text-red-800",
-    success: "border-green-200 bg-green-50 text-green-800",
-    warning: "border-yellow-200 bg-yellow-50 text-yellow-800"
+    default: "border-blue-200 bg-blue-50 text-blue-900 border-l-4 border-l-blue-500",
+    destructive: "border-error-light bg-error-light text-error-primary border-l-4 border-l-error-bright",
+    success: "border-green-200 bg-green-50 text-green-900 border-l-4 border-l-green-500",
+    warning: "border-yellow-200 bg-yellow-50 text-yellow-900 border-l-4 border-l-yellow-500"
   }
 
   // Icônes associées à chaque variant
@@ -53,7 +54,7 @@ export function Alert({ children, variant = 'default', className }: AlertProps) 
 
   return (
     <div className={cn(
-      "flex items-start space-x-3 rounded-md border p-4",
+      "flex items-start space-x-3 rounded-lg border px-4 py-3 shadow-sm",
       variantClasses[variant],
       className
     )}>

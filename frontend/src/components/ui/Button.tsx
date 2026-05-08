@@ -45,21 +45,27 @@ export function Button({
   ...props
 }: ButtonProps) {
   // Classes de base communes à tous les boutons
-  const baseClasses = "inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+  // Harmonisé avec le design Figma : orange-warm primaire, transitions fluides
+  const baseClasses = "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-warm focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed"
 
   // Classes spécifiques selon le variant
+  // default: Orange warm (#e27f29) avec états hover/active
+  // outline: Bordure grise légère, fonds doux
+  // ghost: Transparent, texte gris
+  // link: Texte orange avec underline
   const variantClasses = {
-    default: "bg-orange-600 text-white hover:bg-orange-700 active:bg-orange-800",
-    outline: "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 active:bg-gray-100",
-    ghost: "text-gray-700 hover:bg-gray-100 active:bg-gray-200",
-    link: "text-orange-600 underline-offset-4 hover:underline"
+    default: "bg-orange-warm text-white hover:bg-orange-accent active:bg-orange-500 shadow-md hover:shadow-lg",
+    outline: "border-2 border-gray-300 bg-white text-neutral-dark hover:bg-cream-light active:bg-gray-100 transition-colors",
+    ghost: "text-neutral-medium hover:bg-cream-light active:bg-gray-200 transition-colors",
+    link: "text-orange-warm underline-offset-4 hover:text-orange-accent hover:underline transition-colors"
   }
 
   // Classes spécifiques selon la taille
+  // Cohérent avec hiérarchie typographique Figma
   const sizeClasses = {
-    sm: "h-8 px-3 text-sm",
-    md: "h-10 px-4 py-2",
-    lg: "h-12 px-8 text-lg"
+    sm: "h-8 px-3 text-sm font-medium",
+    md: "h-10 px-4 py-2 text-base",
+    lg: "h-12 px-6 text-base font-semibold"
   }
 
   return (

@@ -36,7 +36,7 @@ export function Loader({ size = 'md', className }: LoaderProps) {
 
   return (
     <div className={cn(
-      "animate-spin rounded-full border-2 border-gray-300 border-t-orange-600",
+      "animate-spin rounded-full border-2 border-gray-200 border-t-orange-warm border-r-orange-warm",
       sizeClasses[size],
       className
     )}
