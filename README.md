@@ -2,6 +2,13 @@
 
 Une plateforme de transfert de fichiers simple mais robuste, avec authentification sécurisée, téléversement de fichiers, et génération de liens de téléchargement utilisant une architecture web classique avec séparation claire des responsabilités : client, frontend React, backend NestJS.
 
+## Prérequis
+
+- Docker installé et en fonctionnement
+- `docker-compose` disponible pour lancer l'application
+
+> Pour un démarrage rapide via Docker Compose, seul Docker est nécessaire. Les commandes de développement local (`npm install`, `npm run dev`, etc.) sont optionnelles si vous utilisez le conteneur.
+
 ## Stack Technique
 
 - **Frontend** : React 18 + Vite + TailwindCSS + React Router + Axios
