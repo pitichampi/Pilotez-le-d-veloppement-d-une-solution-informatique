@@ -21,13 +21,22 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import { visualizer } from 'rollup-plugin-visualizer'
 
 export default defineConfig({
   /**
    * Plugins Vite
    * @property {Plugin} react - Plugin React pour JSX/TSX et HMR (Hot Module Replacement)
    */
-  plugins: [react()],
+  plugins: [
+    react(),
+    visualizer({
+      filename: 'dist/stats.html',
+      open: false,
+      gzipSize: true,
+      brotliSize: true,
+    }),
+  ],
 
   /**
    * Configuration de résolution des modules

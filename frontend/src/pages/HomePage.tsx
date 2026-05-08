@@ -206,7 +206,9 @@ export const HomePage = () => {
 
                         <div className="flex items-center gap-2 relative file-menu-container">
                           {file.has_password && (
-                            <Lock className="h-5 w-5 text-black" title="Ce fichier est protégé par mot de passe" />
+                            <span title="Ce fichier est protégé par mot de passe">
+                              <Lock className="h-5 w-5 text-black" />
+                            </span>
                           )}
                           
                           {/* Bouton mobile seulement - vrai élément HTML */}
