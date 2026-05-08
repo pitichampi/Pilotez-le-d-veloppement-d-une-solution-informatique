@@ -2,12 +2,12 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { authApi, LoginRequest } from '@api/index'
 import { useAuth } from '@hooks/useAuth'
+import { GlobalLayout } from '@components/GlobalLayout'
 import { Card } from '@components/ui/Card'
 import { Button } from '@components/ui/Button'
 import { Input } from '@components/ui/Input'
 import { Alert, AlertDescription } from '@components/ui/Alert'
 import { Loader } from '@components/ui/Loader'
-import { LogIn } from 'lucide-react'
 
 /**
  * Page de connexion utilisateur (US04)
@@ -19,13 +19,6 @@ import { LogIn } from 'lucide-react'
  * - Stockage du JWT et redirection vers accueil
  * - Gestion des erreurs d'authentification
  * - Design harmonisé avec palette orange/crème
- *
- * Flux :
- * 1. Utilisateur rentre email et password
- * 2. Validation basique des champs
- * 3. Appel POST /auth/login
- * 4. Si succès : stocker JWT, stocker user, rediriger vers /
- * 5. Si erreur : afficher le message d'erreur
  */
 export const LoginPage = () => {
   const [email, setEmail] = useState('')
@@ -37,8 +30,6 @@ export const LoginPage = () => {
 
   /**
    * Gère la soumission du formulaire
-   *
-   * @param e React form event
    */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -46,16 +37,10 @@ export const LoginPage = () => {
     setIsLoading(true)
 
     try {
-      // Appel API de connexion (US04)
       const response = await authApi.login({ email, password } as LoginRequest)
-
-      // Stocker le JWT et les données utilisateur dans le contexte
       login(response.data.token, response.data.user)
-
-      // Rediriger vers la page d'accueil
       navigate('/')
     } catch (err: any) {
-      // Afficher l'erreur retournée par l'API ou un message générique
       setError(err.response?.data?.message || 'Erreur de connexion')
     } finally {
       setIsLoading(false)
@@ -63,96 +48,88 @@ export const LoginPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8">
-        {/* En-tête */}
-        <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-100 rounded-full mb-4">
-            <LogIn className="h-8 w-8 text-orange-600" />
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Connexion</h1>
-          <p className="text-gray-600">Accédez à votre espace DataShare</p>
-        </div>
+    <GlobalLayout
+      gradient={true}
+      showLoginButton={true}
+      loginButtonText="Créer un compte"
+    >
+      <div className="flex-1 flex items-center justify-center px-6 py-20">
+        <div className="w-full max-w-lg">
+          <Card className="shadow-soft">
+            <div className="bg-white px-10 py-12 rounded-[30px]">
+              <div className="text-center mb-10">
+                <h1 className="text-3xl font-semibold text-slate-950">Connexion</h1>
+              </div>
 
-        {/* Card du formulaire */}
-        <Card className="p-8">
-          {/* Affichage des erreurs */}
-          {error && (
-            <Alert variant="destructive" className="mb-6">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          {/* Formulaire */}
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            {/* Champ email */}
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Adresse email
-              </label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="vous@exemple.com"
-                required
-                disabled={isLoading}
-              />
-            </div>
-
-            {/* Champ mot de passe */}
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Mot de passe
-              </label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                disabled={isLoading}
-              />
-            </div>
-
-            {/* Bouton de soumission */}
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="w-full"
-              size="lg"
-            >
-              {isLoading ? (
-                <>
-                  <Loader size="sm" className="mr-2" />
-                  Connexion en cours...
-                </>
-              ) : (
-                <>
-                  <LogIn className="h-5 w-5 mr-2" />
-                  Se connecter
-                </>
+              {error && (
+                <Alert variant="destructive" className="mb-6">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
               )}
-            </Button>
-          </form>
-        </Card>
 
-        {/* Lien vers l'inscription */}
-        <div className="text-center">
-          <p className="text-sm text-gray-600">
-            Pas encore de compte ?{' '}
-            <button
-              onClick={() => navigate('/register')}
-              className="font-medium text-orange-600 hover:text-orange-700 underline-offset-4 hover:underline"
-            >
-              S'inscrire
-            </button>
-          </p>
+              <form className="space-y-6" onSubmit={handleSubmit}>
+                <div className="space-y-2">
+                  <label htmlFor="email" className="block text-sm font-medium text-slate-700">
+                    Email
+                  </label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Saisissez votre email..."
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+                    Mot de passe
+                  </label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Saisissez votre mot de passe..."
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/register')}
+                    className="text-sm font-medium text-orange-warm hover:text-orange-600"
+                  >
+                    Créer un compte
+                  </button>
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full border-orange-warm bg-orange-50 text-orange-warm hover:bg-orange-100"
+                  variant="outline"
+                  size="lg"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader size="sm" className="mr-2" />
+                      Connexion...
+                    </>
+                  ) : (
+                    'Connexion'
+                  )}
+                </Button>
+              </form>
+            </div>
+          </Card>
         </div>
       </div>
-    </div>
+    </GlobalLayout>
   )
 }
 
