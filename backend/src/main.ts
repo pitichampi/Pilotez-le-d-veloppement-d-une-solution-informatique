@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core'
-import { ValidationPipe } from '@nestjs/common'
+import { ValidationPipe, ClassSerializerInterceptor } from '@nestjs/common'
 import { AppModule } from './app.module'
 
 /**
@@ -26,6 +26,13 @@ async function bootstrap() {
    * Applique ValidationPipe sur tous les endpoints POST/PUT/PATCH
    */
   app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }))
+
+  /**
+   * Intercepteur de sérialisation globale
+   * Transforme automatiquement les objets de réponse selon les décorateurs @Expose
+   * Permet de contrôler les noms de propriétés dans la réponse JSON
+   */
+  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get('Reflector')))
 
   /**
    * Configuration CORS (Cross-Origin Resource Sharing)
