@@ -1,2 +1,5 @@
 .idea
 /backend/coverage/
+.DS_Store
+/frontend/package-lock.json
+/backend/package-lock.json
