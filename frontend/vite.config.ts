@@ -24,6 +24,12 @@ import path from 'path'
 import { visualizer } from 'rollup-plugin-visualizer'
 
 export default defineConfig({
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: './src/setupTests.ts',
+    include: ['src/**/*.test.{ts,tsx}', 'src/**/*.spec.{ts,tsx}'],
+  },
   /**
    * Plugins Vite
    * @property {Plugin} react - Plugin React pour JSX/TSX et HMR (Hot Module Replacement)

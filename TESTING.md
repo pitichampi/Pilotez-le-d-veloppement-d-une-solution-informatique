@@ -42,6 +42,10 @@ backend/
     ├── files-expiration.e2e-spec.ts          # Tests e2e expiration
     ├── us08-tags.e2e-spec.ts                 # Tests e2e tags
     └── us09-password.e2e-spec.ts             # Tests e2e mots de passe
+frontend/
+  └── src/
+      └── components/
+          └── AnonymousUpload.spec.tsx       # Test Vitest/RTL pour la saisie de tags US08
 ```
 
 ## Scénarios end-to-end prioritaires
@@ -172,6 +176,7 @@ backend/
 
 **Tests unitaires :**
 - `files.service.us08-us09.spec.ts` : Validation tags, stockage JSON
+- `frontend/src/components/AnonymousUpload.spec.tsx` : UI de saisie de tags et envoi du formulaire
 
 **Tests e2e :**
 - `us08-tags.e2e-spec.ts` : Upload avec tags, récupération en liste
@@ -219,18 +224,21 @@ cp .env.example .env.test
 
 ### Tests unitaires
 ```bash
-# Exécution complète
-npm run test
+# Backend unit tests
+cd backend && npm run test
 
-# Avec couverture
-npm run test:cov
+# Backend coverage
+cd backend && npm run test:cov
 
-# Tests spécifiques
-npm run test -- auth.service.spec.ts
-npm run test -- files.service.spec.ts
+# Frontend component unit tests
+cd frontend && npm run test
 
-# Mode watch
-npm run test:watch
+# Mode watch frontend
+cd frontend && npm run test:watch
+
+# Tests spécifiques backend
+cd backend && npm run test -- auth.service.spec.ts
+cd backend && npm run test -- files.service.spec.ts
 ```
 
 ### Tests e2e

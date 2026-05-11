@@ -6,6 +6,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "eslint src --ext ts,tsx",
     "format": "prettier --write src",
     "lighthouse": "lighthouse http://localhost:3000 --output=json --output-path=./lighthouse-report.json --view"
@@ -35,6 +37,11 @@
     "tailwindcss": "^3.4.1",
     "typescript": "^5.3.3",
     "vite": "^5.0.8",
+    "vitest": "^1.5.4",
+    "@testing-library/react": "^14.0.0",
+    "@testing-library/jest-dom": "^6.0.0",
+    "@testing-library/user-event": "^14.6.0",
+    "jsdom": "^22.1.0",
     "webpack-bundle-analyzer": "^5.3.0"
   }
 }
