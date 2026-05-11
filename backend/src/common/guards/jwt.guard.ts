@@ -38,7 +38,7 @@ export class JwtGuard implements CanActivate {
 
     // Vérifier que le header Authorization est présent
     if (!authHeader) {
-      throw new UnauthorizedException('No authorization header')
+      throw new UnauthorizedException('En-tête d\'autorisation manquant')
     }
 
     // Extraire le token du format "Bearer {token}"
@@ -50,7 +50,7 @@ export class JwtGuard implements CanActivate {
       request.user = payload
       return true
     } catch (error) {
-      throw new UnauthorizedException('Invalid token')
+      throw new UnauthorizedException('Token invalide')
     }
   }
 }

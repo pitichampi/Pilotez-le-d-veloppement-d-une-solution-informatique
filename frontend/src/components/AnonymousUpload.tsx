@@ -24,6 +24,8 @@ interface AnonymousUploadProps {
  * Composant upload anonyme (sans authentification)
  * Permet l'upload de fichiers sans créer de compte
  */
+const MAX_FILE_SIZE_BYTES = 1024 * 1024 * 1024 // 1 Go
+
 export const AnonymousUpload = ({ onBack, shareResult }: AnonymousUploadProps) => {
   const { isAuthenticated } = useAuth()
   const [isUploading, setIsUploading] = useState(false)
@@ -41,6 +43,13 @@ export const AnonymousUpload = ({ onBack, shareResult }: AnonymousUploadProps) =
   const handleFileSelection = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setError('La taille maximale autorisée est de 1 Go')
+      setSelectedFile(null)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      return
+    }
 
     setSelectedFile(file)
     setError('')

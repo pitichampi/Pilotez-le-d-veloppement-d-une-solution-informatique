@@ -120,7 +120,7 @@ export class FilesService {
     createFileDto?: CreateFileDto,
   ): Promise<UploadResponseDto> {
     if (!fileData) {
-      throw new BadRequestException('No file uploaded')
+      throw new BadRequestException('Aucun fichier uploadé')
     }
 
     // Générer un token UUID unique pour le fichier
@@ -158,7 +158,7 @@ export class FilesService {
       return this.mapToUploadResponseDto(savedFile)
     } catch (error) {
       this.logger.error(`Failed to upload file: ${error.message}`)
-      throw new BadRequestException(`Failed to save file: ${error.message}`)
+      throw new BadRequestException(`Impossible d'enregistrer le fichier : ${error.message}`)
     }
   }
 
@@ -191,12 +191,12 @@ export class FilesService {
      const file = await this.findOne(id)
 
      if (!file) {
-       throw new NotFoundException('File not found')
+       throw new NotFoundException('Fichier introuvable')
      }
 
      // Vérifier que l'utilisateur est propriétaire du fichier
      if (file.userId !== userId) {
-       throw new ForbiddenException('You do not have permission to delete this file')
+       throw new ForbiddenException('Vous n\'avez pas la permission de supprimer ce fichier')
      }
 
     try {
@@ -209,7 +209,7 @@ export class FilesService {
       this.logger.log(`File deleted: ${id}`)
     } catch (error) {
       this.logger.error(`Failed to delete file ${id}: ${error.message}`)
-      throw new BadRequestException(`Failed to delete file: ${error.message}`)
+      throw new BadRequestException(`Impossible de supprimer le fichier : ${error.message}`)
     }
   }
 
@@ -222,14 +222,14 @@ export class FilesService {
     const file = await this.findOne(id)
 
     if (!file) {
-      throw new NotFoundException('File not found')
+      throw new NotFoundException('Fichier introuvable')
     }
 
     try {
       return await this.storageService.getFile(file.path)
     } catch (error) {
       this.logger.error(`Failed to retrieve file ${id}: ${error.message}`)
-      throw new NotFoundException('File not found in storage')
+      throw new NotFoundException('Fichier introuvable dans le stockage')
     }
   }
 
@@ -316,12 +316,12 @@ export class FilesService {
     // Vérification 1: Taille du fichier
     if (file.size > MAX_FILE_SIZE) {
       throw new PayloadTooLargeException(
-        `File size exceeds maximum allowed size of 1 GB. Received: ${(file.size / 1024 / 1024 / 1024).toFixed(2)} GB`,
+        `La taille du fichier dépasse 1 Go. Reçu : ${(file.size / 1024 / 1024 / 1024).toFixed(2)} Go`,
       )
     }
 
     if (file.size === 0) {
-      throw new BadRequestException('Uploaded file is empty')
+      throw new BadRequestException('Le fichier uploadé est vide')
     }
 
     // Vérification 2: Extension du fichier
@@ -329,13 +329,13 @@ export class FilesService {
     const extension = filename.substring(filename.lastIndexOf('.'))
 
     if (FORBIDDEN_EXTENSIONS.has(extension)) {
-      throw new BadRequestException(`File extension "${extension}" is not allowed for security reasons`)
+      throw new BadRequestException(`L'extension de fichier « ${extension} » n'est pas autorisée pour des raisons de sécurité`)
     }
 
     // Vérification 3: Type MIME annoncé
     if (!ALLOWED_MIME_TYPES.has(file.mimetype)) {
       throw new BadRequestException(
-        `MIME type "${file.mimetype}" is not allowed`,
+        `Type MIME « ${file.mimetype} » non autorisé`,
       )
     }
 
@@ -376,7 +376,7 @@ export class FilesService {
      */
     if (buffer.length >= 2 && buffer[0] === 0x4d && buffer[1] === 0x5a) {
       // MZ header
-      throw new BadRequestException('Executable file detected (PE header found)')
+      throw new BadRequestException('Fichier exécutable détecté (en-têtre PE trouvé)')
     }
 
     /**
@@ -387,7 +387,7 @@ export class FilesService {
      */
     const headerStr = buffer.toString('utf8', 0, Math.min(10, buffer.length)).toLowerCase()
     if (headerStr.includes('#!/')) {
-      throw new BadRequestException('Shell script detected')
+      throw new BadRequestException('Script shell détecté')
     }
   }
 
@@ -479,12 +479,12 @@ export class FilesService {
     const file = await this.findByUploadToken(uploadToken)
 
     if (!file) {
-      throw new NotFoundException('File not found or link is invalid')
+      throw new NotFoundException('Fichier introuvable ou lien invalide')
     }
 
     // Vérifier l'expiration
     if (file.expiresAt && new Date() > file.expiresAt) {
-      throw new BadRequestException('This file link has expired')
+      throw new BadRequestException('Ce lien de fichier a expiré')
     }
 
     return {
@@ -509,23 +509,23 @@ export class FilesService {
     const file = await this.findByUploadToken(uploadToken)
 
     if (!file) {
-      throw new NotFoundException('File not found or link is invalid')
+      throw new NotFoundException('Fichier introuvable ou lien invalide')
     }
 
     // Vérifier l'expiration
     if (file.expiresAt && new Date() > file.expiresAt) {
-      throw new BadRequestException('This file link has expired')
+      throw new BadRequestException('Ce lien de fichier a expiré')
     }
 
     // Vérifier le mot de passe si le fichier est protégé
     if (file.filePasswordHash) {
       if (!password) {
-        throw new BadRequestException('This file is password protected. Please provide a password.')
+        throw new BadRequestException('Ce fichier est protégé par mot de passe. Veuillez fournir un mot de passe.')
       }
 
       const isPasswordValid = await bcrypt.compare(password, file.filePasswordHash)
       if (!isPasswordValid) {
-        throw new BadRequestException('Invalid password')
+        throw new BadRequestException('Mot de passe invalide')
       }
     }
 
@@ -533,7 +533,7 @@ export class FilesService {
       return await this.storageService.getFile(file.path)
     } catch (error) {
       this.logger.error(`Failed to retrieve file ${file.id}: ${error.message}`)
-      throw new NotFoundException('File not found in storage')
+      throw new NotFoundException('Fichier introuvable dans le stockage')
     }
   }
 

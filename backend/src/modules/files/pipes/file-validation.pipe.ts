@@ -59,18 +59,18 @@ export class FileValidationPipe implements PipeTransform {
 
   transform(file: Express.Multer.File): Express.Multer.File {
     if (!file) {
-      throw new BadRequestException('No file uploaded')
+      throw new BadRequestException('Aucun fichier uploadé')
     }
 
     // Vérification 1: Taille du fichier
     if (file.size > this.MAX_FILE_SIZE) {
       throw new PayloadTooLargeException(
-        `File size exceeds maximum allowed size of 1 GB. Received: ${(file.size / 1024 / 1024 / 1024).toFixed(2)} GB`,
+        `La taille du fichier dépasse 1 Go. Reçu : ${(file.size / 1024 / 1024 / 1024).toFixed(2)} Go`,
       )
     }
 
     if (file.size === 0) {
-      throw new BadRequestException('Uploaded file is empty')
+      throw new BadRequestException('Le fichier uploadé est vide')
     }
 
     // Vérification 2: Extension du fichier
@@ -78,13 +78,13 @@ export class FileValidationPipe implements PipeTransform {
     const extension = filename.substring(filename.lastIndexOf('.'))
     
     if (this.FORBIDDEN_EXTENSIONS.has(extension)) {
-      throw new BadRequestException(`File extension "${extension}" is not allowed for security reasons`)
+      throw new BadRequestException(`L'extension de fichier « ${extension} » n'est pas autorisée pour des raisons de sécurité`)
     }
 
     // Vérification 3: Type MIME annoncé
     if (!this.ALLOWED_MIME_TYPES.has(file.mimetype)) {
       throw new BadRequestException(
-        `MIME type "${file.mimetype}" is not allowed. Allowed types: ${Array.from(this.ALLOWED_MIME_TYPES).join(', ')}`,
+        `Type MIME « ${file.mimetype} » non autorisé. Types autorisés : ${Array.from(this.ALLOWED_MIME_TYPES).join(', ')}`,
       )
     }
 
@@ -142,13 +142,13 @@ export class FileValidationPipe implements PipeTransform {
       buffer[0] === 0x4d &&
       buffer[1] === 0x5a // MZ header
     ) {
-      throw new BadRequestException('Executable file detected (PE header found)')
+      throw new BadRequestException('Fichier exécutable détecté (en-têtre PE trouvé)')
     }
 
     // Protection: Rejeter les scripts
     const headerStr = buffer.toString('utf8', 0, Math.min(10, buffer.length)).toLowerCase()
     if (headerStr.includes('#!/') && mimetype.includes('text')) {
-      throw new BadRequestException('Shell script detected')
+      throw new BadRequestException('Script shell détecté')
     }
   }
 }

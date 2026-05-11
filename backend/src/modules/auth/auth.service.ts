@@ -34,7 +34,7 @@ export class AuthService {
   async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
     const existingUser = await this.usersService.findByEmail(registerDto.email)
     if (existingUser) {
-      throw new BadRequestException('Email already registered')
+      throw new BadRequestException('Email déjà enregistré')
     }
 
     /**
@@ -72,7 +72,7 @@ export class AuthService {
   async login(loginDto: LoginDto): Promise<AuthResponseDto> {
     const user = await this.usersService.findByEmail(loginDto.email)
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials')
+      throw new UnauthorizedException('Identifiants invalides')
     }
 
     /**
@@ -81,7 +81,7 @@ export class AuthService {
      */
     const passwordMatch = await bcrypt.compare(loginDto.password, user.password)
     if (!passwordMatch) {
-      throw new UnauthorizedException('Invalid credentials')
+      throw new UnauthorizedException('Identifiants invalides')
     }
 
     const token = this.generateToken(user.id, user.email)
@@ -108,7 +108,7 @@ export class AuthService {
     try {
       return this.jwtService.verify(token)
     } catch (error) {
-      throw new UnauthorizedException('Invalid token')
+      throw new UnauthorizedException('Token invalide')
     }
   }
 

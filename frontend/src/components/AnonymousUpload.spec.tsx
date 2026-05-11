@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
 import { filesApi } from '@api/index'
@@ -56,5 +56,19 @@ describe('AnonymousUpload', () => {
 
     expect(screen.getByRole('button', { name: /copier le lien/i })).toBeInTheDocument()
     expect(screen.getByText(/http:\/\/localhost:3000\/d\/test-token/)).toBeInTheDocument()
+  })
+
+  it('refuse un fichier trop volumineux (> 1 Go) avant l upload', async () => {
+    render(<AnonymousUpload onBack={() => {}} />)
+
+    const inputFile = document.querySelector('input[type="file"]') as HTMLInputElement
+    const largeFile = new File([new ArrayBuffer(1024 * 1024 * 1024 + 1)], 'big-file.bin', { type: 'application/octet-stream' })
+    const uploadButton = screen.getByRole('button', { name: /téléverser/i })
+
+    await userEvent.upload(inputFile, largeFile)
+
+    expect(screen.getByText(/taille maximale autorisée/i)).toBeInTheDocument()
+    expect(uploadButton).toBeDisabled()
+    expect(uploadAnonymousMock).not.toHaveBeenCalled()
   })
 })

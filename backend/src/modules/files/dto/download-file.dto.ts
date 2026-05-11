@@ -35,7 +35,7 @@ export class DownloadFileDto {
    */
   @IsOptional()
   @IsString()
-  @MinLength(8, { message: 'File password must be at least 8 characters' })
+  @MinLength(8, { message: 'Le mot de passe du fichier doit contenir au minimum 8 caractères' })
   password?: string
 }
 

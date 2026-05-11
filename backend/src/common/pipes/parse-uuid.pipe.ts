@@ -12,7 +12,7 @@ export class ParseUuidPipe implements PipeTransform {
   transform(value: any) {
     if (!this.uuidRegex.test(value)) {
       // Rejeter avec 404 au lieu de 400 pour les UUIDs invalides
-      throw new NotFoundException(`Resource not found`)
+      throw new NotFoundException(`Ressource introuvable`)
     }
     return value
   }

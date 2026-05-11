@@ -41,7 +41,7 @@ export class CreateFileDto {
     return value
   })
   @IsString({ each: true })
-  @MaxLength(30, { each: true, message: 'Each tag must be at most 30 characters' })
+  @MaxLength(30, { each: true, message: 'Chaque tag doit contenir au maximum 30 caractères' })
   tags?: string[]
 
   /**
@@ -59,7 +59,7 @@ export class CreateFileDto {
    */
   @IsOptional()
   @IsString()
-  @MinLength(8, { message: 'File password must be at least 8 characters' })
+  @MinLength(8, { message: 'Le mot de passe du fichier doit contenir au minimum 8 caractères' })
   filePassword?: string
 
   /**
@@ -85,10 +85,10 @@ export class CreateFileDto {
    */
   @IsOptional()
   @Type(() => Number)
-  @IsNumber({}, { message: 'expirationDays must be a number' })
-  @IsInt({ message: 'expirationDays must be an integer' })
-  @Min(1, { message: 'expirationDays must be at least 1 day' })
-  @Max(7, { message: 'expirationDays must be at most 7 days' })
+  @IsNumber({}, { message: 'expirationDays doit être un nombre' })
+  @IsInt({ message: 'expirationDays doit être un entier' })
+  @Min(1, { message: 'expirationDays doit être au minimum 1 jour' })
+  @Max(7, { message: 'expirationDays doit être au maximum 7 jours' })
   expirationDays?: number
 }
 
