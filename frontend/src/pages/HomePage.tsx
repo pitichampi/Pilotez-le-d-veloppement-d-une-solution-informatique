@@ -77,7 +77,7 @@ export const HomePage = () => {
             Mes fichiers
           </button>
         </div>
-        <div className="text-sm text-white/80">Copyright DataShare© 2025</div>
+        <div className="text-sm text-white/80">Copyright DataShare© 2026</div>
       </aside>
 
       <main className="relative flex-1">

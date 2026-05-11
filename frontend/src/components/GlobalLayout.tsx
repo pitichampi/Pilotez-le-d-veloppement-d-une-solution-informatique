@@ -14,7 +14,7 @@ interface GlobalLayoutProps {
 /**
  * Layout global avec header et footer constants
  * - Header : DataShare logo + boutons (Login ou Logout)
- * - Footer : Copyright 2025
+ * - Footer : Copyright 2026
  * - Utilisé par toutes les pages
  */
 export const GlobalLayout = ({
