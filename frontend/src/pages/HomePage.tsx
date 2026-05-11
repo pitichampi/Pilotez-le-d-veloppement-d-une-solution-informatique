@@ -196,6 +196,15 @@ export const HomePage = () => {
                           </div>
                           <div className="flex min-w-0 flex-col gap-1">
                             <div className="max-w-[140px] md:max-w-none truncate text-base font-semibold text-[#000000]">{file.original_name}</div>
+                            {Array.isArray(file.tags) && file.tags.length > 0 && (
+                              <div className="flex flex-wrap gap-2">
+                                {file.tags.map((tag: string) => (
+                                  <span key={tag} className="inline-flex items-center rounded-full bg-[#FFE7CB] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#7A4F24]">
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                             <p className={`text-sm ${isExpired ? 'text-[#C62020]' : 'text-[#000000]'}`}>
                               {isExpired
                                 ? 'Ce fichier a expiré, il n’est plus stocké chez nous'
@@ -240,6 +249,7 @@ export const HomePage = () => {
                                     originalName: file.original_name,
                                     size: file.size_bytes,
                                     expires_at: file.expires_at,
+                                    tags: file.tags,
                                   })
                                   setShowAnonymousUpload(true)
                                 }}
@@ -281,6 +291,7 @@ export const HomePage = () => {
                                       originalName: file.original_name,
                                       size: file.size_bytes,
                                       expires_at: file.expires_at,
+                                      tags: file.tags,
                                     })
                                     setShowAnonymousUpload(true)
                                     setOpenFileMenu(null)

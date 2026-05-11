@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, ChangeEvent, KeyboardEvent } from 'react'
 import { useAuth } from '@hooks/useAuth'
 import { filesApi } from '@api/index'
 import { Card } from '@components/ui/Card'
@@ -31,18 +31,47 @@ export const AnonymousUpload = ({ onBack, shareResult }: AnonymousUploadProps) =
   const [copied, setCopied] = useState(false)
   const [expirationDays, setExpirationDays] = useState<number>(7)
   const [filePassword, setFilePassword] = useState('')
+  const [tagInput, setTagInput] = useState('')
+  const [tags, setTags] = useState<string[]>([])
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [uploadResult, setUploadResult] = useState<any>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleFileSelection = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelection = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
     setSelectedFile(file)
     setError('')
     setUploadResult(null)
+  }
+
+  const addTag = () => {
+    const newTag = tagInput.trim()
+    if (!newTag) return
+    if (newTag.length > 30) {
+      setError('Chaque tag doit faire au maximum 30 caractères')
+      return
+    }
+    if (tags.includes(newTag)) {
+      setError('Ce tag est déjà ajouté')
+      return
+    }
+    setTags((prev) => [...prev, newTag])
+    setTagInput('')
+    setError('')
+  }
+
+  const removeTag = (tagToRemove: string) => {
+    setTags((prev) => prev.filter((tag) => tag !== tagToRemove))
+  }
+
+  const handleTagInputKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      addTag()
+    }
   }
 
   const handleFileUpload = async () => {
@@ -60,13 +89,15 @@ export const AnonymousUpload = ({ onBack, shareResult }: AnonymousUploadProps) =
       }
 
       const response = isAuthenticated
-        ? await filesApi.upload(selectedFile, expirationDays, filePassword || undefined, undefined)
-        : await filesApi.uploadAnonymous(selectedFile, expirationDays, filePassword || undefined, undefined)
+        ? await filesApi.upload(selectedFile, expirationDays, filePassword || undefined, tags)
+        : await filesApi.uploadAnonymous(selectedFile, expirationDays, filePassword || undefined, tags)
       setUploadResult(response.data)
       setCopied(false)
       setSelectedFile(null)
       if (fileInputRef.current) fileInputRef.current.value = ''
       setFilePassword('')
+      setTagInput('')
+      setTags([])
       setExpirationDays(7)
 
       // Ne pas rediriger automatiquement
@@ -138,6 +169,15 @@ export const AnonymousUpload = ({ onBack, shareResult }: AnonymousUploadProps) =
             </p>
 
             <div className="rounded-[20px] bg-[#F9F7F4] p-4 flex flex-col gap-3">
+              {Array.isArray((uploadResult || shareResult)?.tags) && (uploadResult || shareResult)?.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {(uploadResult || shareResult).tags.map((tag: string) => (
+                    <span key={tag} className="inline-flex items-center rounded-full bg-[#FFE7CB] px-3 py-1 text-xs font-medium text-[#7A4F24]">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
               <a
                 href={(uploadResult || shareResult)?.download_url}
                 target="_blank"
@@ -208,6 +248,48 @@ export const AnonymousUpload = ({ onBack, shareResult }: AnonymousUploadProps) =
                 className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-orange-warm focus:ring-2 focus:ring-orange-warm focus:ring-opacity-20 bg-white text-slate-900 placeholder:text-gray-400"
                 disabled={isUploading}
               />
+            </div>
+
+            <div>
+              <label htmlFor="file-tags" className="block text-sm font-medium text-slate-700 mb-2">
+                Tags
+              </label>
+              <div className="flex gap-2 mb-3">
+                <input
+                  id="file-tags"
+                  type="text"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={handleTagInputKeyDown}
+                  placeholder="Ajouter un tag et appuyer sur Entrée"
+                  className="flex-1 px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-orange-warm focus:ring-2 focus:ring-orange-warm focus:ring-opacity-20 bg-white text-slate-900 placeholder:text-gray-400"
+                  disabled={isUploading}
+                />
+                <button
+                  onClick={addTag}
+                  type="button"
+                  disabled={isUploading}
+                  className="inline-flex h-10 items-center justify-center rounded-lg bg-[#FFF0E5] px-4 text-sm font-medium text-[#BA681F] transition-colors hover:bg-[#FFE4CC]"
+                >
+                  Ajouter
+                </button>
+              </div>
+              {tags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {tags.map((tag) => (
+                    <span key={tag} className="inline-flex items-center gap-2 rounded-full bg-[#FFE7CB] px-3 py-1 text-sm text-[#7A4F24]">
+                      {tag}
+                      <button
+                        type="button"
+                        onClick={() => removeTag(tag)}
+                        className="rounded-full bg-[#F3EEEA] p-0.5 text-xs font-bold text-[#BA681F] hover:bg-[#FFE4CC]"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div>
