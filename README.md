@@ -147,3 +147,6 @@ npm run start:dev
 
 MIT
 
+## Note
+
+Ce projet est réalisé conjointement avec la formation OpenClassrooms Expert DevOps.
