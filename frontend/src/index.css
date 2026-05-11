@@ -215,5 +215,9 @@ body {
   main .grid > div .truncate {
     max-width: 170px;
   }
+
+  #file-tags {
+    max-width: 180px;
+  }
 }
 
